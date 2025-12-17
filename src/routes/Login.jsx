@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import FormInput from '../components/FormInput';
 import { useToast } from '../components/ToastContainer';
+import logo from '../assets/logo.png';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -43,7 +44,6 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validate()) return;
 
     setLoading(true);
@@ -70,70 +70,83 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
-        
-        <h1 className="text-2xl font-bold text-center mb-6 text-gray-800">
-          تسجيل الدخول
-        </h1>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          
-          <FormInput
-            label="البريد الإلكتروني"
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            error={errors.email}
-            placeholder="أدخل بريدك الإلكتروني"
-            required
-            autoComplete="email"
-          />
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-gray-50">
 
-          <FormInput
-            label="كلمة المرور"
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            error={errors.password}
-            placeholder="أدخل كلمة المرور"
-            required
-            autoComplete="current-password"
-          />
-
-          {/* رابط نسيت كلمة المرور */}
-          <div className="text-left">
-            <Link
-              to="/forgot-password"
-              className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-            >
-              نسيت كلمة المرور؟
-            </Link>
-          </div>
-
-          {/* زر تسجيل الدخول */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
-          </button>
-
-          {/* رابط تسجيل الدخول لأول مرة - تحت الزر وفي المنتصف */}
-          <div className="text-center mt-3">
-            <Link
-              to="/activate"
-              className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-            >
-              تسجيل الدخول لأول مرة؟
-            </Link>
-          </div>
-
-        </form>
+      {/* القسم الأيسر – صورة */}
+      <div className="hidden lg:block relative">
+        <img
+          src={logo}
+          alt="Login"
+          className="w-full h-full object-cover"
+        />
+        {/* Overlay خفيف */}
+        <div className="absolute inset-0 bg-black/1" />
       </div>
+
+      {/* القسم الأيمن – الفورم (كما هو) */}
+      <div className="flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
+          
+          <h1 className="text-2xl font-bold text-center mb-6 text-gray-800">
+            تسجيل الدخول
+          </h1>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            
+            <FormInput
+              label="البريد الإلكتروني"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              error={errors.email}
+              placeholder="أدخل بريدك الإلكتروني"
+              required
+              autoComplete="email"
+            />
+
+            <FormInput
+              label="كلمة المرور"
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              error={errors.password}
+              placeholder="أدخل كلمة المرور"
+              required
+              autoComplete="current-password"
+            />
+
+            <div className="text-left">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                نسيت كلمة المرور؟
+              </Link>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'جاري تسجيل الدخول...' : 'تسجيل الدخول'}
+            </button>
+
+            <div className="text-center mt-3">
+              <Link
+                to="/activate"
+                className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                تسجيل الدخول لأول مرة؟
+              </Link>
+            </div>
+
+          </form>
+        </div>
+      </div>
+
     </div>
   );
 };
