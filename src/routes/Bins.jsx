@@ -4,11 +4,15 @@ import Table from '../components/Table';
 import FormInput from '../components/FormInput';
 import { useToast } from '../components/ToastContainer';
 import BinSidePanel from '../components/BinSidePanel';
+import Pagination from '../components/Pagination';
 
 const Bins = () => {
   const { addToast } = useToast();
   const [bins, setBins] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 7;
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [editingBin, setEditingBin] = useState(null);
   const [formData, setFormData] = useState({
@@ -21,11 +25,23 @@ const Bins = () => {
   });
   const [errors, setErrors] = useState({});
 
-  const fetchBins = useCallback(async () => {
+  const fetchBins = useCallback(async (page = 1) => {
     setLoading(true);
     try {
-      const response = await binsAPI.getBins();
-      setBins(response.data.results || response.data);
+      const params = { page };
+      const response = await binsAPI.getBins(params);
+      
+      // Handle paginated response: { results: [...], count: ... } or fallback to array
+      if (response.data?.results !== undefined) {
+        setBins(response.data.results || []);
+        setTotalCount(response.data.count || 0);
+      } else if (Array.isArray(response.data)) {
+        setBins(response.data);
+        setTotalCount(response.data.length);
+      } else {
+        setBins([]);
+        setTotalCount(0);
+      }
     } catch {
       addToast('فشل تحميل الحاويات', 'error');
     } finally {
@@ -34,8 +50,12 @@ const Bins = () => {
   }, [addToast]);
 
   useEffect(() => {
-    fetchBins();
-  }, [fetchBins]);
+    fetchBins(currentPage);
+  }, [fetchBins, currentPage]);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   const openSidePanel = (bin = null) => {
     if (bin) {
@@ -140,7 +160,7 @@ const Bins = () => {
         addToast('تم إنشاء الحاوية بنجاح', 'success');
       }
       closeSidePanel();
-      fetchBins();
+      fetchBins(currentPage);
     } catch (error) {
       const errorData = error.response?.data || {};
       setErrors(errorData);
@@ -155,7 +175,7 @@ const Bins = () => {
     try {
       await binsAPI.deleteBin(id);
       addToast('تم حذف الحاوية بنجاح', 'success');
-      fetchBins();
+      fetchBins(currentPage);
     } catch {
       addToast('فشل حذف الحاوية', 'error');
     }
@@ -215,6 +235,13 @@ const Bins = () => {
       </div>
 
       <Table columns={columns} data={bins} loading={loading} />
+
+      <Pagination
+        currentPage={currentPage}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+      />
 
       <BinSidePanel
         isOpen={sidePanelOpen}

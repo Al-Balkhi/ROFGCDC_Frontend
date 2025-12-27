@@ -3,11 +3,15 @@ import { municipalitiesAPI } from '../services/api';
 import Table from '../components/Table';
 import { useToast } from '../components/ToastContainer';
 import MunicipalitySidePanel from '../components/MunicipalitySidePanel';
+import Pagination from '../components/Pagination';
 
 const Municipality = () => {
   const { addToast } = useToast();
   const [municipalities, setMunicipalities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 7;
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [editingMunicipality, setEditingMunicipality] = useState(null);
   const [formData, setFormData] = useState({
@@ -18,11 +22,23 @@ const Municipality = () => {
   });
   const [errors, setErrors] = useState({});
 
-  const fetchMunicipalities = useCallback(async () => {
+  const fetchMunicipalities = useCallback(async (page = 1) => {
     setLoading(true);
     try {
-      const response = await municipalitiesAPI.getMunicipalities();
-      setMunicipalities(response.data.results || response.data);
+      const params = { page };
+      const response = await municipalitiesAPI.getMunicipalities(params);
+      
+      // Handle paginated response: { results: [...], count: ... } or fallback to array
+      if (response.data?.results !== undefined) {
+        setMunicipalities(response.data.results || []);
+        setTotalCount(response.data.count || 0);
+      } else if (Array.isArray(response.data)) {
+        setMunicipalities(response.data);
+        setTotalCount(response.data.length);
+      } else {
+        setMunicipalities([]);
+        setTotalCount(0);
+      }
     } catch {
       addToast('فشل تحميل المديريات', 'error');
     } finally {
@@ -31,8 +47,12 @@ const Municipality = () => {
   }, [addToast]);
 
   useEffect(() => {
-    fetchMunicipalities();
-  }, [fetchMunicipalities]);
+    fetchMunicipalities(currentPage);
+  }, [fetchMunicipalities, currentPage]);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   const openSidePanel = (municipality = null) => {
     if (municipality) {
@@ -117,7 +137,7 @@ const Municipality = () => {
         addToast('تم إنشاء المديرية بنجاح', 'success');
       }
       closeSidePanel();
-      fetchMunicipalities();
+      fetchMunicipalities(currentPage);
     } catch (error) {
       const errorData = error.response?.data || {};
       setErrors(errorData);
@@ -132,7 +152,7 @@ const Municipality = () => {
     try {
       await municipalitiesAPI.deleteMunicipality(id);
       addToast('تم حذف المديرية بنجاح', 'success');
-      fetchMunicipalities();
+      fetchMunicipalities(currentPage);
     } catch {
       addToast('فشل حذف المديرية', 'error');
     }
@@ -182,6 +202,13 @@ const Municipality = () => {
       </div>
 
       <Table columns={columns} data={municipalities} loading={loading} />
+
+      <Pagination
+        currentPage={currentPage}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+      />
 
       <MunicipalitySidePanel
         isOpen={sidePanelOpen}

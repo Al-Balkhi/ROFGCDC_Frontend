@@ -3,6 +3,7 @@ import { plannerAPI } from '../services/api';
 import Table from '../components/Table';
 import PlanSideBar from '../components/PlanSideBar';
 import { useToast } from '../components/ToastContainer';
+import Pagination from '../components/Pagination';
 
 // --- مكون قائمة الفلترة (كما هو) ---
 const PlanFiltersDropdown = ({ 
@@ -97,6 +98,9 @@ const PlannerScenarios = () => {
   const [landfills, setLandfills] = useState([]);
   
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 7;
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
   const [errors, setErrors] = useState({});
@@ -138,10 +142,10 @@ const PlannerScenarios = () => {
   }, [filterRef]);
 
   // --- جلب البيانات ---
-  const fetchScenarios = useCallback(async () => {
+  const fetchScenarios = useCallback(async (page = 1) => {
     setLoading(true);
     try {
-      const params = {};
+      const params = { page };
       if (search) params.search = search;
       
       if (filterStatus === 'archived') params.is_archived = 'true';
@@ -151,7 +155,18 @@ const PlannerScenarios = () => {
       if (dateFilter) params.collection_date = dateFilter;
 
       const res = await plannerAPI.getScenarios(params);
-      setScenarios(normalizeList(res.data));
+      
+      // Handle paginated response: { results: [...], count: ... } or fallback to array
+      if (res.data?.results !== undefined) {
+        setScenarios(res.data.results || []);
+        setTotalCount(res.data.count || 0);
+      } else if (Array.isArray(res.data)) {
+        setScenarios(res.data);
+        setTotalCount(res.data.length);
+      } else {
+        setScenarios([]);
+        setTotalCount(0);
+      }
     } catch (error) {
       console.error(error);
       addToast('فشل تحميل الخطط', 'error');
@@ -178,8 +193,17 @@ const PlannerScenarios = () => {
   }, [addToast]);
 
   useEffect(() => {
-    fetchScenarios();
-  }, [fetchScenarios]);
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+  }, [search, filterStatus, selectedMunicipality, dateFilter]);
+
+  useEffect(() => {
+    fetchScenarios(currentPage);
+  }, [fetchScenarios, currentPage]);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   useEffect(() => {
     fetchFormOptions();
@@ -288,7 +312,7 @@ const PlannerScenarios = () => {
 
       await plannerAPI.solveScenario(targetId);
       closeSidePanel();
-      fetchScenarios();
+      fetchScenarios(currentPage);
     } catch (error) {
       setErrors(error.response?.data || {});
       addToast('حدث خطأ أثناء المعالجة', 'error');
@@ -305,12 +329,12 @@ const PlannerScenarios = () => {
       if (editingPlan && editingPlan.id === scenario.id) {
         closeSidePanel();
       }
-      fetchScenarios();
+      fetchScenarios(currentPage);
     } catch (error) {
       console.error(error);
       addToast('فشل حذف الخطة', 'error');
     }
-  }, [addToast, editingPlan, fetchScenarios, closeSidePanel]);
+  }, [addToast, editingPlan, fetchScenarios, closeSidePanel, currentPage]);
 
   // --- تعريف الأعمدة ---
   const columns = useMemo(() => ([
@@ -417,6 +441,13 @@ const PlannerScenarios = () => {
       </div>
 
       <Table columns={columns} data={scenarios} loading={loading} />
+
+      <Pagination
+        currentPage={currentPage}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+      />
 
       <PlanSideBar
         isOpen={sidePanelOpen}

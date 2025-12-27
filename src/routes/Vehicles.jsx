@@ -4,11 +4,15 @@ import Table from '../components/Table';
 import FormInput from '../components/FormInput';
 import { useToast } from '../components/ToastContainer';
 import VehicleSidePanel from '../components/VehicleSidePanel';
+import Pagination from '../components/Pagination';
 
 const Vehicles = () => {
   const { addToast } = useToast();
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 7;
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [formData, setFormData] = useState({
@@ -19,11 +23,23 @@ const Vehicles = () => {
   });
   const [errors, setErrors] = useState({});
 
-  const fetchVehicles = useCallback(async () => {
+  const fetchVehicles = useCallback(async (page = 1) => {
     setLoading(true);
     try {
-      const response = await vehiclesAPI.getVehicles();
-      setVehicles(response.data.results || response.data);
+      const params = { page };
+      const response = await vehiclesAPI.getVehicles(params);
+      
+      // Handle paginated response: { results: [...], count: ... } or fallback to array
+      if (response.data?.results !== undefined) {
+        setVehicles(response.data.results || []);
+        setTotalCount(response.data.count || 0);
+      } else if (Array.isArray(response.data)) {
+        setVehicles(response.data);
+        setTotalCount(response.data.length);
+      } else {
+        setVehicles([]);
+        setTotalCount(0);
+      }
     } catch {
       addToast('فشل تحميل الشاحنات', 'error');
     } finally {
@@ -32,8 +48,12 @@ const Vehicles = () => {
   }, [addToast]);
 
   useEffect(() => {
-    fetchVehicles();
-  }, [fetchVehicles]);
+    fetchVehicles(currentPage);
+  }, [fetchVehicles, currentPage]);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   const openSidePanel = (vehicle = null) => {
     if (vehicle) {
@@ -122,7 +142,7 @@ const Vehicles = () => {
         addToast('تم إنشاء الشاحنة بنجاح', 'success');
       }
       closeSidePanel();
-      fetchVehicles();
+      fetchVehicles(currentPage);
     } catch (error) {
       const errorData = error.response?.data || {};
       setErrors(errorData);
@@ -137,7 +157,7 @@ const Vehicles = () => {
     try {
       await vehiclesAPI.deleteVehicle(id);
       addToast('تم حذف الشاحنة بنجاح', 'success');
-      fetchVehicles();
+      fetchVehicles(currentPage);
     } catch {
       addToast('فشل حذف الشاحنة', 'error');
     }
@@ -183,6 +203,13 @@ const Vehicles = () => {
       </div>
 
       <Table columns={columns} data={vehicles} loading={loading} />
+
+      <Pagination
+        currentPage={currentPage}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+      />
 
       <VehicleSidePanel
         isOpen={sidePanelOpen}

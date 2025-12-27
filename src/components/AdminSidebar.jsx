@@ -46,7 +46,7 @@ export default function Sidebar() {
             className="w-8 h-8"
           />
           {!sidebarCollapsed && (
-            <span className="text-nowrap font-bold text-lg">نظام إدارة النفايات</span>
+            <span className="text-nowrap font-bold text-lg">منصة اماطة</span>
           )}
         </div>
 

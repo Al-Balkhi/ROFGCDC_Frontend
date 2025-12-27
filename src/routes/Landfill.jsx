@@ -3,12 +3,16 @@ import { landfillsAPI, municipalitiesAPI } from '../services/api';
 import Table from '../components/Table';
 import { useToast } from '../components/ToastContainer';
 import LandfillSidePanel from '../components/LandfillSidePanel';
+import Pagination from '../components/Pagination';
 
 const Landfill = () => {
   const { addToast } = useToast();
   const [landfills, setLandfills] = useState([]);
   const [municipalities, setMunicipalities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 7;
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [editingLandfill, setEditingLandfill] = useState(null);
   const [formData, setFormData] = useState({
@@ -20,11 +24,23 @@ const Landfill = () => {
   });
   const [errors, setErrors] = useState({});
 
-  const fetchLandfills = useCallback(async () => {
+  const fetchLandfills = useCallback(async (page = 1) => {
     setLoading(true);
     try {
-      const response = await landfillsAPI.getLandfills();
-      setLandfills(response.data.results || response.data);
+      const params = { page };
+      const response = await landfillsAPI.getLandfills(params);
+      
+      // Handle paginated response: { results: [...], count: ... } or fallback to array
+      if (response.data?.results !== undefined) {
+        setLandfills(response.data.results || []);
+        setTotalCount(response.data.count || 0);
+      } else if (Array.isArray(response.data)) {
+        setLandfills(response.data);
+        setTotalCount(response.data.length);
+      } else {
+        setLandfills([]);
+        setTotalCount(0);
+      }
     } catch {
       addToast('فشل تحميل مكبات القمامة', 'error');
     } finally {
@@ -35,16 +51,20 @@ const Landfill = () => {
   const fetchMunicipalities = useCallback(async () => {
     try {
       const response = await municipalitiesAPI.getMunicipalities();
-      setMunicipalities(response.data.results || response.data);
+      setMunicipalities(Array.isArray(response.data) ? response.data : response.data?.results || []);
     } catch {
       // Silently fail - municipalities are optional
     }
   }, []);
 
   useEffect(() => {
-    fetchLandfills();
+    fetchLandfills(currentPage);
     fetchMunicipalities();
-  }, [fetchLandfills, fetchMunicipalities]);
+  }, [fetchLandfills, fetchMunicipalities, currentPage]);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   const openSidePanel = (landfill = null) => {
     if (landfill) {
@@ -142,7 +162,7 @@ const Landfill = () => {
         addToast('تم إنشاء مكب القمامة بنجاح', 'success');
       }
       closeSidePanel();
-      fetchLandfills();
+      fetchLandfills(currentPage);
     } catch (error) {
       const errorData = error.response?.data || {};
       setErrors(errorData);
@@ -157,7 +177,7 @@ const Landfill = () => {
     try {
       await landfillsAPI.deleteLandfill(id);
       addToast('تم حذف مكب القمامة بنجاح', 'success');
-      fetchLandfills();
+      fetchLandfills(currentPage);
     } catch {
       addToast('فشل حذف مكب القمامة', 'error');
     }
@@ -215,6 +235,13 @@ const Landfill = () => {
       </div>
 
       <Table columns={columns} data={landfills} loading={loading} />
+
+      <Pagination
+        currentPage={currentPage}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+      />
 
       <LandfillSidePanel
         isOpen={sidePanelOpen}
