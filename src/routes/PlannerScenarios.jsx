@@ -32,7 +32,7 @@ const PlanFiltersDropdown = ({
           onClick={() => setFilterStatus('archived')}
           className={`flex-1 py-1 text-sm rounded-md transition-all ${filterStatus === 'archived' ? 'bg-white text-blue-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'}`}
         >
-          مؤرشفة
+          منتهية
         </button>
         <button
           onClick={() => setFilterStatus('all')}
@@ -347,8 +347,8 @@ const PlannerScenarios = () => {
       key: 'status', 
       label: 'الحالة', 
       render: (_, row) => (
-        <span className={`px-2 py-1 rounded text-xs font-semibold ${row.is_archived ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'}`}>
-          {row.is_archived ? 'منتهية (مؤرشفة)' : 'نشطة'}
+        <span className={`px-2 py-1 rounded text-xs font-semibold ${row.is_expired ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'}`}>
+          {row.is_expired ? 'منتهية الصلاحية' : 'نشطة'}
         </span>
       )
     },
