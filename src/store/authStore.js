@@ -2,6 +2,23 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authAPI, profileAPI } from '../services/api';
 
+/**
+ * Helper function to standardize user object shape and sanitize data.
+ * Prevents DRY violations and ensures consistent user object structure.
+ */
+const sanitizeUser = (data) => {
+  if (!data) return null;
+  return {
+    id: data.id,
+    email: data.email,
+    username: data.username,
+    role: data.role,
+    image_profile: data.image_profile,
+    phone: data.phone,
+    is_active: data.is_active,
+  };
+};
+
 const useAuthStore = create(
   persist(
     (set, get) => ({
@@ -15,23 +32,38 @@ const useAuthStore = create(
       login: async (email, password) => {
         set({ loading: true, error: null });
         try {
-          await authAPI.login(email, password);
+          const loginResponse = await authAPI.login(email, password);
           
-          // Always fetch profile after successful login
-          const profileResult = await get().fetchProfile();
-          
-          if (profileResult.success) {
-            set({ isAuthenticated: true });
-            return { success: true, user: profileResult.user };
+          // Check if login response contains user data, otherwise fetch profile
+          let userData = null;
+          if (loginResponse?.data?.user || loginResponse?.data) {
+            // If login endpoint returns user data, use it directly
+            userData = loginResponse.data.user || loginResponse.data;
           } else {
-            set({
-              isAuthenticated: false,
-              user: null,
-              loading: false,
-              error: profileResult.error || 'فشل جلب بيانات المستخدم',
-            });
-            return { success: false, error: profileResult.error };
+            // Only fetch profile if login doesn't return user data
+            const profileResult = await get().fetchProfile();
+            if (profileResult.success) {
+              userData = profileResult.user;
+            } else {
+              set({
+                isAuthenticated: false,
+                user: null,
+                loading: false,
+                error: profileResult.error || 'فشل جلب بيانات المستخدم',
+              });
+              return { success: false, error: profileResult.error };
+            }
           }
+
+          const sanitizedUser = sanitizeUser(userData);
+          set({
+            isAuthenticated: true,
+            user: sanitizedUser,
+            loading: false,
+            error: null,
+          });
+          
+          return { success: true, user: sanitizedUser };
         } catch (error) {
           const errorMessage = error.response?.data?.detail || 'فشل تسجيل الدخول';
           set({
@@ -65,23 +97,16 @@ const useAuthStore = create(
         try {
           const response = await profileAPI.getProfile();
           const profileData = response.data;
+          const sanitizedUser = sanitizeUser(profileData);
           
           set({
             isAuthenticated: true,
-            user: {
-              id: profileData.id,
-              email: profileData.email,
-              username: profileData.username,
-              role: profileData.role,
-              image_profile: profileData.image_profile,
-              phone: profileData.phone,
-              is_active: profileData.is_active,
-            },
+            user: sanitizedUser,
             loading: false,
             error: null,
           });
           
-          return { success: true, user: profileData };
+          return { success: true, user: sanitizedUser };
         } catch (error) {
           const errorMessage = error.response?.data?.detail || 'فشل جلب بيانات المستخدم';
           set({
@@ -95,17 +120,8 @@ const useAuthStore = create(
       },
 
       setProfile: (profile) => {
-        set({
-          user: {
-            id: profile.id,
-            email: profile.email,
-            username: profile.username,
-            role: profile.role,
-            image_profile: profile.image_profile,
-            phone: profile.phone,
-            is_active: profile.is_active,
-          },
-        });
+        const sanitizedUser = sanitizeUser(profile);
+        set({ user: sanitizedUser });
       },
 
       setLoading: (loading) => set({ loading }),
@@ -116,17 +132,10 @@ const useAuthStore = create(
         try {
           const response = await profileAPI.getProfile();
           const profileData = response.data;
+          const sanitizedUser = sanitizeUser(profileData);
           
           set({
-            user: {
-              id: profileData.id,
-              email: profileData.email,
-              username: profileData.username,
-              role: profileData.role,
-              image_profile: profileData.image_profile,
-              phone: profileData.phone,
-              is_active: profileData.is_active,
-            },
+            user: sanitizedUser,
             isAuthenticated: true,
             loading: false,
             error: null,
@@ -144,21 +153,18 @@ const useAuthStore = create(
     {
       name: 'auth-storage',
       partialize: (state) => ({
-        // Only persist non-sensitive data
+        // Security: Only persist minimal non-sensitive data
+        // Do NOT persist PII like email, phone, username, image_profile
+        isAuthenticated: state.isAuthenticated,
+        // Only persist id and role for routing/permission checks if absolutely necessary
         user: state.user ? {
           id: state.user.id,
-          email: state.user.email,
-          username: state.user.username,
           role: state.user.role,
-          image_profile: state.user.image_profile,
-          phone: state.user.phone,
-          is_active: state.user.is_active,
+          // Note: is_active is not persisted as it should be checked on each session
         } : null,
-        isAuthenticated: state.isAuthenticated,
       }),
     }
   )
 );
 
 export default useAuthStore;
-

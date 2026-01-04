@@ -118,6 +118,7 @@ const Profile = () => {
 
     setLoading(true);
     try {
+      // Convert snake_case state to camelCase for API call
       await profileAPI.changePassword(
         passwordData.old_password,
         passwordData.new_password,

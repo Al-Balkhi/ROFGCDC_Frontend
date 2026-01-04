@@ -15,20 +15,48 @@ const api = axios.create({
 let isRefreshing = false;
 let failedQueue = [];
 
-const processQueue = (error, token = null) => {
+/**
+ * Process queued requests after token refresh completes.
+ * Note: We use cookie-based auth, so we don't need to pass tokens.
+ * The retry logic relies on cookies being set by the refresh endpoint.
+ */
+const processQueue = (error) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
-      prom.resolve(token);
+      // Resolve with null since we rely on cookie-based retry
+      prom.resolve(null);
     }
   });
   failedQueue = [];
 };
 
-// Request interceptor
+/**
+ * Extract CSRF token from cookies for Django/Rails style CSRF protection.
+ * Django sets csrftoken cookie, Rails uses _csrf_token.
+ */
+const getCsrfToken = () => {
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'csrftoken' || name === '_csrf_token') {
+      return value;
+    }
+  }
+  return null;
+};
+
+// Request interceptor - Add CSRF token to headers if available
 api.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    // Add CSRF token to headers for Django/Rails CSRF protection
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      config.headers['X-CSRFToken'] = csrfToken;
+    }
+    return config;
+  },
   (error) => Promise.reject(error)
 );
 
@@ -59,10 +87,10 @@ api.interceptors.response.use(
 
       try {
         await api.post('/auth/refresh/');
-        processQueue(null, null);
+        processQueue(null);
         return api(originalRequest);
       } catch (refreshError) {
-        processQueue(refreshError, null);
+        processQueue(refreshError);
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
@@ -81,12 +109,18 @@ api.interceptors.response.use(
 const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
 /**
- * Helper function to get plural form of a resource
+ * Helper function to get plural form of a resource.
+ * 
+ * Note: This is a simple implementation. For production apps with many
+ * irregular plurals, consider using a library like 'pluralize':
+ *   npm install pluralize
+ *   import pluralize from 'pluralize';
+ *   return pluralize(resource);
  */
 const getPlural = (resource) => {
   const pluralMap = {
     municipality: 'municipalities',
-    // Add other irregular plurals here if needed
+    // Add other irregular plurals here as needed
   };
   return pluralMap[resource] || `${resource}s`;
 };
@@ -109,6 +143,8 @@ const createCRUDEndpoints = (resource) => {
 
 // ================== APIs ==================
 
+export const initCSRF = () => api.get('/csrf/');
+
 export const authAPI = {
   login: (email, password) => api.post('/auth/login/', { email, password }),
   logout: () => api.post('/auth/logout/'),
@@ -120,12 +156,16 @@ export const authAPI = {
       email,
       otp,
       password,
-      confirm_password: confirmPassword,
+      confirm_password: confirmPassword, // Backend expects snake_case
     }),
   requestPasswordReset: (email) =>
     api.post('/auth/password/reset/request/', { email }),
-  confirmPasswordReset: (email, otp, new_password) =>
-    api.post('/auth/password/reset/confirm/', { email, otp, new_password }),
+  confirmPasswordReset: (email, otp, newPassword) =>
+    api.post('/auth/password/reset/confirm/', {
+      email,
+      otp,
+      new_password: newPassword, // Backend expects snake_case
+    }),
 };
 
 export const profileAPI = {
@@ -138,11 +178,11 @@ export const profileAPI = {
     }
     return api.put('/profile/', data);
   },
-  changePassword: (old_password, new_password, confirm_new_password) =>
+  changePassword: (oldPassword, newPassword, confirmNewPassword) =>
     api.post('/profile/password/', {
-      old_password,
-      new_password,
-      confirm_new_password,
+      old_password: oldPassword, // Backend expects snake_case
+      new_password: newPassword, // Backend expects snake_case
+      confirm_new_password: confirmNewPassword, // Backend expects snake_case
     }),
 };
 

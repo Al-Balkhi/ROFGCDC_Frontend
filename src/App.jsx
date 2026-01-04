@@ -4,6 +4,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { ToastProvider } from './components/ToastContainer';
 import PageLoader from './components/PageLoader';
 import { ROLES } from './constants/roles';
+import { useEffect } from 'react';
+import { initCSRF } from './services/api';
 
 // Layout components - keep as eager imports for better initial load
 import AdminDashboardLayout from './layouts/AdminDashboardLayout';
@@ -27,6 +29,9 @@ const PlannerScenarios = lazy(() => import('./routes/PlannerScenarios'));
 const PlannerSolutions = lazy(() => import('./routes/PlannerSolutions'));
 
 function App() {
+  useEffect(() => {
+    initCSRF();
+  }, []);
   return (
     <ToastProvider>
       <BrowserRouter>

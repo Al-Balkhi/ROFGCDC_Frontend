@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import FormInput from '../components/FormInput';
 import { useToast } from '../components/ToastContainer';
-import { DASHBOARD_ROUTES } from '../constants/roles';
+import { DASHBOARD_ROUTES, ROLES } from '../constants/roles';
 import logo from '../assets/logo.png';
 
 const Login = () => {
@@ -31,8 +31,12 @@ const Login = () => {
     
     if (!formData.email.trim()) {
       newErrors.email = 'البريد الإلكتروني مطلوب';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'البريد الإلكتروني غير صحيح';
+    } else {
+      // Robust email validation regex (RFC 5322 compliant variant)
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        newErrors.email = 'البريد الإلكتروني غير صحيح';
+      }
     }
     
     if (!formData.password) {
@@ -57,7 +61,7 @@ const Login = () => {
       if (!result.user.is_active) {
         navigate('/activate');
       } else {
-        const dashboardRoute = DASHBOARD_ROUTES[result.user.role] || DASHBOARD_ROUTES.admin;
+        const dashboardRoute = DASHBOARD_ROUTES[result.user.role] || DASHBOARD_ROUTES[ROLES.ADMIN];
         navigate(dashboardRoute);
       }
     } else {
