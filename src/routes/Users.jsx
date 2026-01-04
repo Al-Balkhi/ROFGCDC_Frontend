@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usersAPI } from '../services/api';
 import Table from '../components/Table';
 import { useToast } from '../components/ToastContainer';
@@ -15,6 +15,7 @@ const Users = () => {
   const [editingUser, setEditingUser] = useState(null);
 
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
   const [selectedRoles, setSelectedRoles] = useState([]);
@@ -31,23 +32,42 @@ const Users = () => {
 
   const [errors, setErrors] = useState({});
 
+  // Minimum search length
+  const MIN_SEARCH_LENGTH = 2;
+  // Debounce delay in milliseconds
+  const DEBOUNCE_DELAY = 300;
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Only update debouncedSearch if search meets minimum length or is empty
+      if (search.length === 0 || search.length >= MIN_SEARCH_LENGTH) {
+        setDebouncedSearch(search);
+      } else {
+        // Clear search if too short
+        setDebouncedSearch('');
+      }
+    }, DEBOUNCE_DELAY);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
   // هل هناك فلاتر مفعّلة؟
   const hasActiveUserFilters =
     selectedRoles.length > 0 ||
     selectedStates.length > 0 ||
     selectedArchived.length > 0;
 
-  useEffect(() => {
-    fetchUsers();
-  }, [search, selectedRoles, selectedStates, selectedArchived]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
 
     try {
       const params = new URLSearchParams();
 
-      if (search) params.append('search', search);
+      // Only include search if it meets minimum length requirement
+      if (debouncedSearch && debouncedSearch.length >= MIN_SEARCH_LENGTH) {
+        params.append('search', debouncedSearch);
+      }
       selectedRoles.forEach((r) => params.append('role', r));
       selectedStates.forEach((s) => params.append('is_active', s));
       selectedArchived.forEach((a) => params.append('is_archived', a));
@@ -60,7 +80,11 @@ const Users = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [debouncedSearch, selectedRoles, selectedStates, selectedArchived, addToast]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const openSidePanel = (user = null) => {
     if (user) {
