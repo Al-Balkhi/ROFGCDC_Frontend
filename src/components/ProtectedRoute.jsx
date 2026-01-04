@@ -2,12 +2,19 @@ import { Navigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 
 const ProtectedRoute = ({ children, requiredRole = null }) => {
-  const { isAuthenticated, user, loading } = useAuthStore();
+  // Optimize Zustand selectors - select properties individually to prevent unnecessary re-renders
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
+  const loading = useAuthStore((state) => state.loading);
   const location = useLocation();
 
   // Wait for initialization to complete
   if (loading) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
   // If not authenticated after loading, redirect to login

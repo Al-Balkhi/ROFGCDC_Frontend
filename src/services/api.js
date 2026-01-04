@@ -11,6 +11,21 @@ const api = axios.create({
   },
 });
 
+// Token refresh state management (Wait Queue pattern)
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 // Request interceptor
 api.interceptors.request.use(
   (config) => config,
@@ -29,18 +44,68 @@ api.interceptors.response.use(
       !originalRequest._retry &&
       !originalRequest.url?.includes('/auth/refresh/')
     ) {
+      if (isRefreshing) {
+        // If already refreshing, queue this request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({
+            resolve: () => resolve(api(originalRequest)),
+            reject: () => reject(error),
+          });
+        });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
+
       try {
         await api.post('/auth/refresh/');
+        processQueue(null, null);
         return api(originalRequest);
-      } catch {
-        return Promise.reject(error);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
 
     return Promise.reject(error);
   }
 );
+
+// ================== Helper Functions ==================
+
+/**
+ * Capitalizes the first letter of a string
+ */
+const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+
+/**
+ * Helper function to get plural form of a resource
+ */
+const getPlural = (resource) => {
+  const pluralMap = {
+    municipality: 'municipalities',
+    // Add other irregular plurals here if needed
+  };
+  return pluralMap[resource] || `${resource}s`;
+};
+
+/**
+ * Factory function to create standard CRUD endpoints
+ */
+const createCRUDEndpoints = (resource) => {
+  const resourcePlural = getPlural(resource);
+  return {
+    [`get${capitalize(resourcePlural)}`]: (params) =>
+      api.get(`/${resourcePlural}/`, { params }),
+    [`get${capitalize(resource)}`]: (id) => api.get(`/${resourcePlural}/${id}/`),
+    [`create${capitalize(resource)}`]: (data) => api.post(`/${resourcePlural}/`, data),
+    [`update${capitalize(resource)}`]: (id, data) =>
+      api.patch(`/${resourcePlural}/${id}/`, data),
+    [`delete${capitalize(resource)}`]: (id) => api.delete(`/${resourcePlural}/${id}/`),
+  };
+};
 
 // ================== APIs ==================
 
@@ -81,50 +146,55 @@ export const profileAPI = {
     }),
 };
 
+// Create CRUD endpoints using factory function
+const baseUsersAPI = createCRUDEndpoints('user');
 export const usersAPI = {
-  getUsers: (params) => api.get('/users/', { params }),
-  getUser: (id) => api.get(`/users/${id}/`),
-  createUser: (data) => api.post('/users/', data),
-  updateUser: (id, data) => api.patch(`/users/${id}/`, data),
-  deleteUser: (id) => api.delete(`/users/${id}/`),
+  ...baseUsersAPI,
+  // Rename methods to match existing API naming convention
+  getUsers: baseUsersAPI.getUsers,
+  getUser: baseUsersAPI.getUser,
+  createUser: baseUsersAPI.createUser,
+  updateUser: baseUsersAPI.updateUser,
+  deleteUser: baseUsersAPI.deleteUser,
+  // Additional methods specific to users
   archiveUser: (id) => api.patch(`/users/${id}/archive/`),
   restoreUser: (id) => api.patch(`/users/${id}/restore/`),
 };
 
+const baseBinsAPI = createCRUDEndpoints('bin');
 export const binsAPI = {
-  getBins: (params) => api.get('/bins/', { params }),
-  getBin: (id) => api.get(`/bins/${id}/`),
-  createBin: (data) => api.post('/bins/', data),
-  updateBin: (id, data) => api.patch(`/bins/${id}/`, data),
-  deleteBin: (id) => api.delete(`/bins/${id}/`),
+  getBins: baseBinsAPI.getBins,
+  getBin: baseBinsAPI.getBin,
+  createBin: baseBinsAPI.createBin,
+  updateBin: baseBinsAPI.updateBin,
+  deleteBin: baseBinsAPI.deleteBin,
 };
 
+const baseVehiclesAPI = createCRUDEndpoints('vehicle');
 export const vehiclesAPI = {
-  getVehicles: (params) => api.get('/vehicles/', { params }),
-  getVehicle: (id) => api.get(`/vehicles/${id}/`),
-  createVehicle: (data) => api.post('/vehicles/', data),
-  updateVehicle: (id, data) => api.patch(`/vehicles/${id}/`, data),
-  deleteVehicle: (id) => api.delete(`/vehicles/${id}/`),
+  getVehicles: baseVehiclesAPI.getVehicles,
+  getVehicle: baseVehiclesAPI.getVehicle,
+  createVehicle: baseVehiclesAPI.createVehicle,
+  updateVehicle: baseVehiclesAPI.updateVehicle,
+  deleteVehicle: baseVehiclesAPI.deleteVehicle,
 };
 
+const baseMunicipalitiesAPI = createCRUDEndpoints('municipality');
 export const municipalitiesAPI = {
-  getMunicipalities: (params) => api.get('/municipalities/', { params }),
-  getMunicipality: (id) => api.get(`/municipalities/${id}/`),
-  createMunicipality: (data) => api.post('/municipalities/', data),
-  updateMunicipality: (id, data) =>
-    api.patch(`/municipalities/${id}/`, data),
-  deleteMunicipality: (id) =>
-    api.delete(`/municipalities/${id}/`),
+  getMunicipalities: baseMunicipalitiesAPI.getMunicipalities,
+  getMunicipality: baseMunicipalitiesAPI.getMunicipality,
+  createMunicipality: baseMunicipalitiesAPI.createMunicipality,
+  updateMunicipality: baseMunicipalitiesAPI.updateMunicipality,
+  deleteMunicipality: baseMunicipalitiesAPI.deleteMunicipality,
 };
 
+const baseLandfillsAPI = createCRUDEndpoints('landfill');
 export const landfillsAPI = {
-  getLandfills: (params) => api.get('/landfills/', { params }),
-  getLandfill: (id) => api.get(`/landfills/${id}/`),
-  createLandfill: (data) => api.post('/landfills/', data),
-  updateLandfill: (id, data) =>
-    api.patch(`/landfills/${id}/`, data),
-  deleteLandfill: (id) =>
-    api.delete(`/landfills/${id}/`),
+  getLandfills: baseLandfillsAPI.getLandfills,
+  getLandfill: baseLandfillsAPI.getLandfill,
+  createLandfill: baseLandfillsAPI.createLandfill,
+  updateLandfill: baseLandfillsAPI.updateLandfill,
+  deleteLandfill: baseLandfillsAPI.deleteLandfill,
 };
 
 export const mapAPI = {

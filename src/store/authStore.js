@@ -57,8 +57,6 @@ const useAuthStore = create(
             loading: false,
             error: null,
           });
-          localStorage.removeItem('userRole');
-          localStorage.removeItem('userActive');
         }
       },
 
@@ -83,19 +81,16 @@ const useAuthStore = create(
             error: null,
           });
           
-          // Update localStorage
-          localStorage.setItem('userRole', profileData.role);
-          localStorage.setItem('userActive', profileData.is_active.toString());
-          
           return { success: true, user: profileData };
         } catch (error) {
+          const errorMessage = error.response?.data?.detail || 'فشل جلب بيانات المستخدم';
           set({
             isAuthenticated: false,
             user: null,
             loading: false,
-            error: error.response?.data?.detail || 'فشل جلب بيانات المستخدم',
+            error: errorMessage,
           });
-          return { success: false, error: error.response?.data?.detail };
+          return { success: false, error: errorMessage };
         }
       },
 
@@ -111,8 +106,6 @@ const useAuthStore = create(
             is_active: profile.is_active,
           },
         });
-        localStorage.setItem('userRole', profile.role);
-        localStorage.setItem('userActive', profile.is_active.toString());
       },
 
       setLoading: (loading) => set({ loading }),
@@ -138,10 +131,6 @@ const useAuthStore = create(
             loading: false,
             error: null,
           });
-          
-          // Update localStorage
-          localStorage.setItem('userRole', profileData.role);
-          localStorage.setItem('userActive', profileData.is_active.toString());
         } catch (error) {
           set({
             user: null,

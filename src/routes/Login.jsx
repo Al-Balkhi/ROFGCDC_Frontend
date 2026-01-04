@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import FormInput from '../components/FormInput';
 import { useToast } from '../components/ToastContainer';
+import { DASHBOARD_ROUTES } from '../constants/roles';
 import logo from '../assets/logo.png';
 
 const Login = () => {
@@ -56,9 +57,8 @@ const Login = () => {
       if (!result.user.is_active) {
         navigate('/activate');
       } else {
-        if (result.user.role === 'admin') navigate('/dashboard/admin');
-        else if (result.user.role === 'planner') navigate('/dashboard/planner');
-        else navigate('/dashboard/admin');
+        const dashboardRoute = DASHBOARD_ROUTES[result.user.role] || DASHBOARD_ROUTES.admin;
+        navigate(dashboardRoute);
       }
     } else {
       addToast(result.error || 'فشل تسجيل الدخول', 'error');
