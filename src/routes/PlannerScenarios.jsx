@@ -107,6 +107,7 @@ const PlannerScenarios = () => {
 
   // --- حالات الفلترة والبحث ---
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   
   // 2. إنشاء مرجع للحاوية التي تضم الزر والقائمة
@@ -124,6 +125,16 @@ const PlannerScenarios = () => {
     vehicle_id: '',
     bin_ids: [],
   });
+
+  const DEBOUNCE_DELAY = 200;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, DEBOUNCE_DELAY);
+
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // 3. إضافة منطق إغلاق القائمة عند الضغط خارجها
   useEffect(() => {
@@ -146,7 +157,8 @@ const PlannerScenarios = () => {
     setLoading(true);
     try {
       const params = { page };
-      if (search) params.search = search;
+      
+      if (debouncedSearch) params.search = debouncedSearch;
       
       if (filterStatus === 'archived') params.is_archived = 'true';
       else if (filterStatus === 'active') params.is_archived = 'false';
@@ -173,7 +185,7 @@ const PlannerScenarios = () => {
     } finally {
       setLoading(false);
     }
-  }, [addToast, search, filterStatus, selectedMunicipality, dateFilter]);
+  }, [addToast, debouncedSearch, filterStatus, selectedMunicipality, dateFilter]); // الاعتماد على debouncedSearch
 
   const fetchFormOptions = useCallback(async (scenarioId = null) => {
     try {
@@ -193,9 +205,9 @@ const PlannerScenarios = () => {
   }, [addToast]);
 
   useEffect(() => {
-    // Reset to page 1 when filters change
+    // Reset to page 1 when filters or debounced search change
     setCurrentPage(1);
-  }, [search, filterStatus, selectedMunicipality, dateFilter]);
+  }, [debouncedSearch, filterStatus, selectedMunicipality, dateFilter]);
 
   useEffect(() => {
     fetchScenarios(currentPage);

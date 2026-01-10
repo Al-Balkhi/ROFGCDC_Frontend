@@ -32,21 +32,12 @@ const Users = () => {
 
   const [errors, setErrors] = useState({});
 
-  // Minimum search length
-  const MIN_SEARCH_LENGTH = 2;
-  // Debounce delay in milliseconds
-  const DEBOUNCE_DELAY = 300;
+  const DEBOUNCE_DELAY = 200;
 
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Only update debouncedSearch if search meets minimum length or is empty
-      if (search.length === 0 || search.length >= MIN_SEARCH_LENGTH) {
-        setDebouncedSearch(search);
-      } else {
-        // Clear search if too short
-        setDebouncedSearch('');
-      }
+      setDebouncedSearch(search);
     }, DEBOUNCE_DELAY);
 
     return () => clearTimeout(timer);
@@ -64,10 +55,10 @@ const Users = () => {
     try {
       const params = new URLSearchParams();
 
-      // Only include search if it meets minimum length requirement
-      if (debouncedSearch && debouncedSearch.length >= MIN_SEARCH_LENGTH) {
+      if (debouncedSearch) {
         params.append('search', debouncedSearch);
       }
+      
       selectedRoles.forEach((r) => params.append('role', r));
       selectedStates.forEach((s) => params.append('is_active', s));
       selectedArchived.forEach((a) => params.append('is_archived', a));

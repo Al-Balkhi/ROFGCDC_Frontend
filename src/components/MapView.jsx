@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { useNavigate } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
@@ -27,7 +27,39 @@ const icons = {
   municipality: createIcon('#dc2626'),
 };
 
-const MapView = () => {
+// --- دالة لفك تشفير Polyline القادم من OSRM ---
+const decodePolyline = (encoded) => {
+  if (!encoded) return [];
+  const poly = [];
+  let index = 0, len = encoded.length;
+  let lat = 0, lng = 0;
+
+  while (index < len) {
+    let b, shift = 0, result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlat = (result & 1) !== 0 ? ~(result >> 1) : (result >> 1);
+    lat += dlat;
+
+    shift = 0;
+    result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlng = (result & 1) !== 0 ? ~(result >> 1) : (result >> 1);
+    lng += dlng;
+
+    poly.push([lat / 1e5, lng / 1e5]);
+  }
+  return poly;
+};
+
+const MapView = ({ routes = [] }) => {
   const navigate = useNavigate();
   const [bins, setBins] = useState([]);
   const [vehicles, setVehicles] = useState([]);
@@ -40,6 +72,7 @@ const MapView = () => {
   const [showVehicles, setShowVehicles] = useState(true);
   const [showLandfills, setShowLandfills] = useState(true);
   const [showMunicipality, setShowMunicipality] = useState(true);
+  const [showRoutes, setShowRoutes] = useState(true);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -68,14 +101,18 @@ const MapView = () => {
   }, []);
 
   const center = useMemo(() => {
+    if (routes && routes.length > 0 && routes[0].geometry) {
+        const points = decodePolyline(routes[0].geometry);
+        if (points.length > 0) return points[0];
+    }
     const muniWithHQ = municipalities.find((m) => m.hq_latitude && m.hq_longitude);
     if (muniWithHQ) return [muniWithHQ.hq_latitude, muniWithHQ.hq_longitude];
     return defaultCenter;
-  }, [municipalities]);
+  }, [municipalities, routes]);
 
   return (
     <div className="w-full rounded-lg shadow-md overflow-hidden bg-white">
-      <div className="flex items-center gap-4 p-4 border-b flex-shrink-0">
+      <div className="flex items-center gap-4 p-4 border-b flex-shrink-0 flex-wrap">
         <span className="font-semibold text-gray-800">الفلترة حسب: </span>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={showBins} onChange={(e) => setShowBins(e.target.checked)} />
@@ -105,6 +142,18 @@ const MapView = () => {
           />
           مديرية
         </label>
+        {/* إضافة زر لتبديل عرض المسارات إذا وجدت */}
+        {routes && routes.length > 0 && (
+            <label className="flex items-center gap-2 text-sm text-blue-700 font-bold">
+            <input
+                type="checkbox"
+                checked={showRoutes}
+                onChange={(e) => setShowRoutes(e.target.checked)}
+            />
+            المسارات المحسنة
+            </label>
+        )}
+
         {loading && <span className="text-sm text-gray-500">جاري التحميل...</span>}
         {error && <span className="text-sm text-red-600">{error}</span>}
       </div>
@@ -118,12 +167,30 @@ const MapView = () => {
           maxBounds={DAMASCUS_BOUNDS}
           maxBoundsViscosity={1.0}
           className="w-full h-full"
-          style={{ direction: 'ltr' }} // ensure Leaflet controls render correctly
+          style={{ direction: 'ltr' }}
         >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution="&copy; OpenStreetMap contributors"
         />
+
+        {/* --- رسم المسارات --- */}
+        {showRoutes && routes.map((route, idx) => {
+            if (!route.geometry) return null;
+            const positions = decodePolyline(route.geometry);
+            return (
+                <Polyline 
+                    key={`route-${idx}`} 
+                    positions={positions} 
+                    pathOptions={{ color: 'blue', weight: 4, opacity: 0.7 }} 
+                >
+                     <Popup>
+                        مسار المركبة: {route.vehicle || 'غير محدد'}
+                     </Popup>
+                </Polyline>
+            );
+        })}
+
         {showBins &&
           bins
             .filter((b) => b.latitude && b.longitude)

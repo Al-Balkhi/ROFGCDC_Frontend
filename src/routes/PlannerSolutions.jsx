@@ -25,6 +25,38 @@ const binIcon = L.divIcon({
   iconAnchor: [6, 6],
 });
 
+// --- دالة فك تشفير المسار (OSRM Polyline Decoding) ---
+const decodePolyline = (encoded) => {
+  if (!encoded) return [];
+  const poly = [];
+  let index = 0, len = encoded.length;
+  let lat = 0, lng = 0;
+
+  while (index < len) {
+    let b, shift = 0, result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlat = (result & 1) !== 0 ? ~(result >> 1) : (result >> 1);
+    lat += dlat;
+
+    shift = 0;
+    result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlng = (result & 1) !== 0 ? ~(result >> 1) : (result >> 1);
+    lng += dlng;
+
+    poly.push([lat / 1e5, lng / 1e5]);
+  }
+  return poly;
+};
+
 const PlannerSolutions = () => {
   const { solutionId } = useParams();
   const { addToast } = useToast();
@@ -78,12 +110,21 @@ const PlannerSolutions = () => {
       if (!solution.data?.routes) return [];
 
       return solution.data.routes.map((route, routeIndex) => {
-        const coords = [];
-        if (startLat && startLon) coords.push([startLat, startLon]);
-        route.stops.forEach((binId) => {
-          const bin = binsMap.get(binId);
-          if (bin?.latitude && bin?.longitude) coords.push([bin.latitude, bin.longitude]);
-        });
+        let coords = [];
+
+        // 1. الأولوية لاستخدام الهندسة القادمة من السيرفر (الشوارع الحقيقية)
+        if (route.geometry) {
+          coords = decodePolyline(route.geometry);
+        } else {
+          // 2. البديل (Fallback): توصيل النقاط بخطوط مستقيمة إذا لم تتوفر الهندسة
+          if (startLat && startLon) coords.push([startLat, startLon]);
+          route.stops.forEach((binId) => {
+            const bin = binsMap.get(binId);
+            if (bin?.latitude && bin?.longitude) coords.push([bin.latitude, bin.longitude]);
+          });
+          // العودة لنقطة البداية (اختياري، حسب المنطق السابق)
+          if (startLat && startLon) coords.push([startLat, startLon]);
+        }
 
         return {
           id: `${solution.id}-${routeIndex}`,
@@ -173,4 +214,3 @@ const PlannerSolutions = () => {
 };
 
 export default PlannerSolutions;
-
