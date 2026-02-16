@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import useAuthStore from '../store/authStore';
 import { usersAPI } from '../services/api';
 import Table from '../components/Table';
 import { useToast } from '../components/ToastContainer';
@@ -197,6 +198,8 @@ const Users = () => {
     return labels[role] || role;
   };
 
+  const currentUser = useAuthStore((state) => state.user);
+
   const columns = [
     { key: 'username', label: 'اسم المستخدم' },
     { key: 'email', label: 'البريد الإلكتروني' },
@@ -218,7 +221,17 @@ const Users = () => {
         </span>
       ),
     },
-    {
+  ];
+
+  if (currentUser?.is_superuser) {
+    columns.push({
+      key: 'created_by',
+      label: 'تم الإنشاء بواسطة',
+      render: (_, row) => row.created_by || '—',
+    });
+  }
+
+  columns.push({
       key: 'actions',
       label: 'الإجراءات',
       render: (_, row) => (
@@ -247,8 +260,7 @@ const Users = () => {
           )}
         </div>
       ),
-    },
-  ];
+    });
 
   return (
     <div>

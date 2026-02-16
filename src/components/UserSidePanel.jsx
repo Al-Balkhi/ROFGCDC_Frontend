@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import useAuthStore from "../store/authStore";
 
 const UserSidePanel = ({
   isOpen,
@@ -12,6 +13,7 @@ const UserSidePanel = ({
   handleImageChange,
 }) => {
   const panelRef = useRef();
+  const currentUser = useAuthStore((state) => state.user);
 
   // إغلاق عند الضغط خارج اللوحة
   useEffect(() => {
@@ -87,7 +89,7 @@ const UserSidePanel = ({
             >
               <option value="driver">سائق</option>
               <option value="planner">مخطط</option>
-              <option value="admin">مدير</option>
+              {currentUser?.is_superuser && <option value="admin">مدير</option>}
             </select>
           </div>
 

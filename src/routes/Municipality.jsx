@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import useAuthStore from '../store/authStore';
 import { municipalitiesAPI } from '../services/api';
 import Table from '../components/Table';
 import { useToast } from '../components/ToastContainer';
@@ -158,6 +159,8 @@ const Municipality = () => {
     }
   };
 
+  const currentUser = useAuthStore((state) => state.user);
+
   const columns = [
     { key: 'name', label: 'الاسم' },
     { key: 'hq_latitude', label: 'خط العرض' },
@@ -167,7 +170,17 @@ const Municipality = () => {
       label: 'الوصف',
       render: (value) => (value ? (value.length > 50 ? `${value.substring(0, 50)}...` : value) : '-'),
     },
-    {
+  ];
+
+  if (currentUser?.is_superuser) {
+    columns.push({
+      key: 'created_by',
+      label: 'تم الإنشاء بواسطة',
+      render: (_, row) => row.created_by || '—',
+    });
+  }
+
+  columns.push({
       key: 'actions',
       label: 'الإجراءات',
       render: (_, row) => (
@@ -186,8 +199,7 @@ const Municipality = () => {
           </button>
         </div>
       ),
-    },
-  ];
+    });
 
   return (
     <div>

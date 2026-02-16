@@ -62,14 +62,12 @@ const decodePolyline = (encoded) => {
 const MapView = ({ routes = [] }) => {
   const navigate = useNavigate();
   const [bins, setBins] = useState([]);
-  const [vehicles, setVehicles] = useState([]);
   const [landfills, setLandfills] = useState([]);
   const [municipalities, setMunicipalities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const [showBins, setShowBins] = useState(true);
-  const [showVehicles, setShowVehicles] = useState(true);
   const [showLandfills, setShowLandfills] = useState(true);
   const [showMunicipality, setShowMunicipality] = useState(true);
   const [showRoutes, setShowRoutes] = useState(true);
@@ -79,15 +77,14 @@ const MapView = ({ routes = [] }) => {
       setLoading(true);
       setError('');
       try {
-        const [binsRes, vehiclesRes, landfillsRes, municipalitiesRes] = await Promise.all([
-          mapAPI.getBins(),
-          mapAPI.getVehicles(),
-          mapAPI.getLandfills(),
-          mapAPI.getMunicipalities(),
+        const params = { map_view: true };
+        const [binsRes, landfillsRes, municipalitiesRes] = await Promise.all([
+          mapAPI.getBins(params),
+          mapAPI.getLandfills(params),
+          mapAPI.getMunicipalities(params),
         ]);
 
         setBins(binsRes.data.results || binsRes.data || []);
-        setVehicles(vehiclesRes.data.results || vehiclesRes.data || []);
         setLandfills(landfillsRes.data.results || landfillsRes.data || []);
         setMunicipalities(municipalitiesRes.data.results || municipalitiesRes.data || []);
       } catch {
@@ -118,14 +115,7 @@ const MapView = ({ routes = [] }) => {
           <input type="checkbox" checked={showBins} onChange={(e) => setShowBins(e.target.checked)} />
           حاوية
         </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={showVehicles}
-            onChange={(e) => setShowVehicles(e.target.checked)}
-          />
-          شاحنة
-        </label>
+
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -214,32 +204,7 @@ const MapView = ({ routes = [] }) => {
               </Marker>
             ))}
 
-        {showVehicles &&
-          vehicles
-            .filter((v) => v.start_latitude && v.start_longitude)
-            .map((vehicle) => (
-              <Marker
-                key={`vehicle-${vehicle.id}`}
-                position={[vehicle.start_latitude, vehicle.start_longitude]}
-                icon={icons.vehicle}
-              >
-                <Popup>
-                  <div className="text-right space-y-1">
-                    <p className="font-semibold">الشاحنة: {vehicle.name}</p>
-                    <p className="text-sm text-gray-700">السعة: {vehicle.capacity}</p>
-                    <p className="text-xs text-gray-500">
-                      ({vehicle.start_latitude}, {vehicle.start_longitude})
-                    </p>
-                    <button
-                      className="mt-2 text-blue-600 text-sm underline"
-                      onClick={() => navigate(`/dashboard/admin/vehicles/${vehicle.id}`)}
-                    >
-                      تعديل
-                    </button>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+
 
         {showLandfills &&
           landfills

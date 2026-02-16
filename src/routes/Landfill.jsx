@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import useAuthStore from '../store/authStore';
 import { landfillsAPI, municipalitiesAPI } from '../services/api';
 import Table from '../components/Table';
 import { useToast } from '../components/ToastContainer';
@@ -183,6 +184,8 @@ const Landfill = () => {
     }
   };
 
+  const currentUser = useAuthStore((state) => state.user);
+
   const columns = [
     { key: 'name', label: 'الاسم' },
     { key: 'latitude', label: 'خط العرض' },
@@ -200,7 +203,17 @@ const Landfill = () => {
         return value.map((m) => m.name).join('، ');
       },
     },
-    {
+  ];
+
+  if (currentUser?.is_superuser) {
+    columns.push({
+      key: 'created_by',
+      label: 'تم الإنشاء بواسطة',
+      render: (_, row) => row.created_by || '—',
+    });
+  }
+
+  columns.push({
       key: 'actions',
       label: 'الإجراءات',
       render: (_, row) => (
@@ -219,8 +232,7 @@ const Landfill = () => {
           </button>
         </div>
       ),
-    },
-  ];
+    });
 
   return (
     <div>

@@ -16,6 +16,7 @@ const sanitizeUser = (data) => {
     image_profile: data.image_profile,
     phone: data.phone,
     is_active: data.is_active,
+    is_superuser: data.is_superuser,
   };
 };
 
@@ -160,6 +161,7 @@ const useAuthStore = create(
         user: state.user ? {
           id: state.user.id,
           role: state.user.role,
+          is_superuser: state.user.is_superuser,
           // Note: is_active is not persisted as it should be checked on each session
         } : null,
       }),

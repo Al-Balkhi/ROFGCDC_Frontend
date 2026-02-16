@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import useAuthStore from '../store/authStore';
 import { vehiclesAPI } from '../services/api';
 import Table from '../components/Table';
 import FormInput from '../components/FormInput';
@@ -163,12 +164,24 @@ const Vehicles = () => {
     }
   };
 
+  const currentUser = useAuthStore((state) => state.user);
+
   const columns = [
     { key: 'name', label: 'الاسم' },
     { key: 'capacity', label: 'السعة' },
     { key: 'start_latitude', label: 'خط العرض' },
     { key: 'start_longitude', label: 'خط الطول' },
-    {
+  ];
+
+  if (currentUser?.is_superuser) {
+    columns.push({
+      key: 'created_by',
+      label: 'تم الإنشاء بواسطة',
+      render: (_, row) => row.created_by || '—',
+    });
+  }
+
+  columns.push({
       key: 'actions',
       label: 'الإجراءات',
       render: (_, row) => (
@@ -187,8 +200,7 @@ const Vehicles = () => {
           </button>
         </div>
       ),
-    },
-  ];
+    });
 
   return (
     <div>
