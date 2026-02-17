@@ -19,8 +19,7 @@ const Vehicles = () => {
   const [formData, setFormData] = useState({
     name: '',
     capacity: '',
-    start_latitude: '',
-    start_longitude: '',
+    municipality_id: '',
   });
   const [errors, setErrors] = useState({});
 
@@ -62,16 +61,14 @@ const Vehicles = () => {
       setFormData({
         name: vehicle.name || '',
         capacity: vehicle.capacity || '',
-        start_latitude: vehicle.start_latitude || '',
-        start_longitude: vehicle.start_longitude || '',
+        municipality_id: vehicle.municipality?.id || '',
       });
     } else {
       setEditingVehicle(null);
       setFormData({
         name: '',
         capacity: '',
-        start_latitude: '',
-        start_longitude: '',
+        municipality_id: '',
       });
     }
     setErrors({});
@@ -84,8 +81,7 @@ const Vehicles = () => {
     setFormData({
       name: '',
       capacity: '',
-      start_latitude: '',
-      start_longitude: '',
+      municipality_id: '',
     });
     setErrors({});
   };
@@ -108,15 +104,8 @@ const Vehicles = () => {
     } else if (isNaN(formData.capacity) || formData.capacity < 1) {
       newErrors.capacity = 'السعة يجب أن تكون رقم موجب';
     }
-    if (!formData.start_latitude) {
-      newErrors.start_latitude = 'خط العرض مطلوب';
-    } else if (isNaN(formData.start_latitude) || formData.start_latitude < 33.40 || formData.start_latitude > 33.60) {
-      newErrors.start_latitude = 'خط العرض يجب أن يكون بين 33.40 و 33.60 (حدود مدينة دمشق)';
-    }
-    if (!formData.start_longitude) {
-      newErrors.start_longitude = 'خط الطول مطلوب';
-    } else if (isNaN(formData.start_longitude) || formData.start_longitude < 36.10 || formData.start_longitude > 36.40) {
-      newErrors.start_longitude = 'خط الطول يجب أن يكون بين 36.10 و 36.40 (حدود مدينة دمشق)';
+    if (!formData.municipality_id) {
+      newErrors.municipality = 'البلدية مطلوبة';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -131,8 +120,7 @@ const Vehicles = () => {
       const submitData = {
         name: formData.name,
         capacity: parseInt(formData.capacity),
-        start_latitude: parseFloat(formData.start_latitude),
-        start_longitude: parseFloat(formData.start_longitude),
+        municipality_id: formData.municipality_id,
       };
 
       if (editingVehicle) {
@@ -169,8 +157,11 @@ const Vehicles = () => {
   const columns = [
     { key: 'name', label: 'الاسم' },
     { key: 'capacity', label: 'السعة' },
-    { key: 'start_latitude', label: 'خط العرض' },
-    { key: 'start_longitude', label: 'خط الطول' },
+    {
+      key: 'municipality',
+      label: 'البلدية',
+      render: (_, row) => row.municipality?.name || '—',
+    },
   ];
 
   if (currentUser?.is_superuser) {

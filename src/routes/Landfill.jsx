@@ -20,7 +20,6 @@ const Landfill = () => {
     name: '',
     latitude: '',
     longitude: '',
-    description: '',
     municipality_ids: [],
   });
   const [errors, setErrors] = useState({});
@@ -74,7 +73,6 @@ const Landfill = () => {
         name: landfill.name || '',
         latitude: landfill.latitude || '',
         longitude: landfill.longitude || '',
-        description: landfill.description || '',
         municipality_ids: landfill.municipalities?.map((m) => m.id) || [],
       });
     } else {
@@ -83,7 +81,6 @@ const Landfill = () => {
         name: '',
         latitude: '',
         longitude: '',
-        description: '',
         municipality_ids: [],
       });
     }
@@ -98,7 +95,6 @@ const Landfill = () => {
       name: '',
       latitude: '',
       longitude: '',
-      description: '',
       municipality_ids: [],
     });
     setErrors({});
@@ -151,7 +147,6 @@ const Landfill = () => {
         name: formData.name,
         latitude: parseFloat(formData.latitude),
         longitude: parseFloat(formData.longitude),
-        description: formData.description,
         municipality_ids: formData.municipality_ids,
       };
 
@@ -190,11 +185,6 @@ const Landfill = () => {
     { key: 'name', label: 'الاسم' },
     { key: 'latitude', label: 'خط العرض' },
     { key: 'longitude', label: 'خط الطول' },
-    {
-      key: 'description',
-      label: 'الوصف',
-      render: (value) => (value ? (value.length > 50 ? `${value.substring(0, 50)}...` : value) : '-'),
-    },
     {
       key: 'municipalities',
       label: 'البلديات',

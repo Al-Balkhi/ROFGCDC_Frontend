@@ -19,7 +19,6 @@ const Municipality = () => {
     name: '',
     hq_latitude: '',
     hq_longitude: '',
-    description: '',
   });
   const [errors, setErrors] = useState({});
 
@@ -62,7 +61,6 @@ const Municipality = () => {
         name: municipality.name || '',
         hq_latitude: municipality.hq_latitude || '',
         hq_longitude: municipality.hq_longitude || '',
-        description: municipality.description || '',
       });
     } else {
       setEditingMunicipality(null);
@@ -70,7 +68,6 @@ const Municipality = () => {
         name: '',
         hq_latitude: '',
         hq_longitude: '',
-        description: '',
       });
     }
     setErrors({});
@@ -84,7 +81,6 @@ const Municipality = () => {
       name: '',
       hq_latitude: '',
       hq_longitude: '',
-      description: '',
     });
     setErrors({});
   };
@@ -120,7 +116,6 @@ const Municipality = () => {
     try {
       const submitData = {
         name: formData.name,
-        description: formData.description,
       };
 
       if (formData.hq_latitude) {
@@ -165,11 +160,6 @@ const Municipality = () => {
     { key: 'name', label: 'الاسم' },
     { key: 'hq_latitude', label: 'خط العرض' },
     { key: 'hq_longitude', label: 'خط الطول' },
-    {
-      key: 'description',
-      label: 'الوصف',
-      render: (value) => (value ? (value.length > 50 ? `${value.substring(0, 50)}...` : value) : '-'),
-    },
   ];
 
   if (currentUser?.is_superuser) {

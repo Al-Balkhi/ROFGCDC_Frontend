@@ -1,5 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import FormInput from './FormInput';
+import LocationPickerModal from './LocationPickerModal';
+
 
 const MunicipalitySidePanel = ({
   isOpen,
@@ -12,10 +14,19 @@ const MunicipalitySidePanel = ({
   handleChange,
 }) => {
   const panelRef = useRef(null);
+  const [showMapPicker, setShowMapPicker] = useState(false);
+
+  const handleLocationSelect = (lat, lng) => {
+    handleChange({ target: { name: 'hq_latitude', value: lat } });
+    handleChange({ target: { name: 'hq_longitude', value: lng } });
+    setShowMapPicker(false);
+  };
 
   // Close when clicking outside the panel
   useEffect(() => {
     const handleClickOutside = (event) => {
+      if (showMapPicker) return;
+
       if (panelRef.current && !panelRef.current.contains(event.target)) {
         onClose();
       }
@@ -23,103 +34,92 @@ const MunicipalitySidePanel = ({
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [onClose]);
+  }, [onClose, showMapPicker]);
 
   return (
-    <div
-      className={`fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity ${
-        isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-      } z-50 flex justify-end`}
-    >
+    <>
       <div
-        ref={panelRef}
-        className={`w-full max-w-md h-full bg-white shadow-xl p-6 overflow-y-auto transition-transform duration-300 ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity ${
+          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        } z-50 flex justify-end`}
       >
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">
-            {editingMunicipality ? 'تعديل المديرية' : 'إضافة مديرية جديدة'}
-          </h2>
-          <button onClick={onClose} className="text-gray-600 text-xl">
-            ×
-          </button>
-        </div>
+        <div
+          ref={panelRef}
+          className={`w-full max-w-md h-full bg-white shadow-xl p-6 overflow-y-auto transition-transform duration-300 ${
+            isOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">
+              {editingMunicipality ? 'تعديل المديرية' : 'إضافة مديرية جديدة'}
+            </h2>
+            <button onClick={onClose} className="text-gray-600 text-xl">
+              ×
+            </button>
+          </div>
 
-        <form onSubmit={onSubmit}>
-          <FormInput
-            label="الاسم"
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            error={errors.name}
-            required
-          />
-
-          <FormInput
-            label="خط العرض (المقر الرئيسي)"
-            type="number"
-            name="hq_latitude"
-            value={formData.hq_latitude}
-            onChange={handleChange}
-            error={errors.hq_latitude}
-            placeholder="33.40 إلى 33.60 "
-            min="33.40"
-            max="33.60"
-            step="0.0001"
-            required
-          />
-
-          <FormInput
-            label="خط الطول (المقر الرئيسي)"
-            type="number"
-            name="hq_longitude"
-            value={formData.hq_longitude}
-            onChange={handleChange}
-            error={errors.hq_longitude}
-            placeholder="36.10 إلى 36.40 "
-            min="36.10"
-            max="36.40"
-            step="0.0001"
-            required
-          />
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">الوصف</label>
-            <textarea
-              name="description"
-              value={formData.description}
+          <form onSubmit={onSubmit}>
+            <FormInput
+              label="الاسم"
+              type="text"
+              name="name"
+              value={formData.name}
               onChange={handleChange}
-              rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              error={errors.name}
+              required
             />
-            {errors.description && (
-              <p className="text-red-500 text-sm mt-1">{errors.description}</p>
-            )}
-          </div>
 
-          <div className="flex gap-2 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-gray-300 py-2 rounded-lg"
-            >
-              إلغاء
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-blue-600 text-white py-2 rounded-lg disabled:opacity-50"
-            >
-              {editingMunicipality ? 'تحديث' : 'إنشاء'}
-            </button>
-          </div>
-        </form>
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => setShowMapPicker(true)}
+                className="w-full bg-indigo-50 text-indigo-700 py-2 rounded-lg border border-indigo-200 hover:bg-indigo-100 flex items-center justify-center gap-2"
+              >
+                📍 حدد الموقع على الخريطة
+              </button>
+              {formData.hq_latitude && formData.hq_longitude ? (
+                <div className="mt-2 text-sm text-gray-600 text-center">
+                  تم تحديد الموقع: {Number(formData.hq_latitude).toFixed(5)}, {Number(formData.hq_longitude).toFixed(5)}
+                </div>
+              ) : (
+                <div className="mt-2 text-sm text-red-500 text-center">
+                  لم يتم تحديد الموقع بعد *
+                </div>
+              )}
+            </div>
+
+
+
+            <div className="flex gap-2 mt-6">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 bg-gray-300 py-2 rounded-lg"
+              >
+                إلغاء
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 bg-blue-600 text-white py-2 rounded-lg disabled:opacity-50"
+              >
+                {editingMunicipality ? 'تحديث' : 'إنشاء'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+
+      <LocationPickerModal
+        isOpen={showMapPicker}
+        onClose={() => setShowMapPicker(false)}
+        onConfirm={handleLocationSelect}
+        initialLat={formData.hq_latitude}
+        initialLng={formData.hq_longitude}
+        title="تحديد موقع المديرية"
+      />
+    </>
   );
 };
 
 export default MunicipalitySidePanel;
-

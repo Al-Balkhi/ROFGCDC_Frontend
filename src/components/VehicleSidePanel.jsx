@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import FormInput from './FormInput';
+import { municipalitiesAPI } from '../services/api';
 
 const VehicleSidePanel = ({
   isOpen,
@@ -12,6 +13,8 @@ const VehicleSidePanel = ({
   handleChange,
 }) => {
   const panelRef = useRef(null);
+  const [municipalities, setMunicipalities] = useState([]);
+  const [loadingMunicipalities, setLoadingMunicipalities] = useState(false);
 
   // Close when clicking outside the panel
   useEffect(() => {
@@ -24,6 +27,26 @@ const VehicleSidePanel = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
+
+  // Fetch municipalities for admin to assign vehicles
+  useEffect(() => {
+    const fetchMunicipalities = async () => {
+      setLoadingMunicipalities(true);
+      try {
+        const res = await municipalitiesAPI.getMunicipalities();
+        const data = Array.isArray(res.data) ? res.data : res.data?.results || [];
+        setMunicipalities(data);
+      } catch {
+        // Silent failure; form will just not show options
+        setMunicipalities([]);
+      } finally {
+        setLoadingMunicipalities(false);
+      }
+    };
+    if (isOpen) {
+      fetchMunicipalities();
+    }
+  }, [isOpen]);
 
   return (
     <div
@@ -68,33 +91,30 @@ const VehicleSidePanel = ({
             required
           />
 
-          <FormInput
-            label="خط العرض"
-            type="number"
-            name="start_latitude"
-            value={formData.start_latitude}
-            onChange={handleChange}
-            error={errors.start_latitude}
-            placeholder="33.40 إلى 33.60"
-            min="33.40"
-            max="33.60"
-            step="0.0001"
-            required
-          />
-
-          <FormInput
-            label="خط الطول"
-            type="number"
-            name="start_longitude"
-            value={formData.start_longitude}
-            onChange={handleChange}
-            error={errors.start_longitude}
-            placeholder="36.10 إلى 36.40"
-            min="36.10"
-            max="36.40"
-            step="0.0001"
-            required
-          />
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              المديرية
+            </label>
+            <select
+              name="municipality_id"
+              value={formData.municipality_id || ''}
+              onChange={handleChange}
+              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="">
+                {loadingMunicipalities ? 'جاري تحميل المديريات...' : 'اختر المديريات'}
+              </option>
+              {municipalities.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+            {errors.municipality && (
+              <p className="text-red-600 text-sm mt-1">{errors.municipality}</p>
+            )}
+          </div>
 
           <div className="flex gap-2 mt-6">
             <button
@@ -119,5 +139,3 @@ const VehicleSidePanel = ({
 };
 
 export default VehicleSidePanel;
-
-
