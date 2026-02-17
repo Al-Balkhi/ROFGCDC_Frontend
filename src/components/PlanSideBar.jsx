@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import FormInput from './FormInput';
+import { useEffect, useRef } from "react";
+import FormInput from "./FormInput";
 
 const PlanSideBar = ({
   isOpen,
@@ -13,14 +13,11 @@ const PlanSideBar = ({
   municipalities = [],
   vehicles = [],
   bins = [],
-  landfills = [],
+
   onDelete,
   toggleBin,
 }) => {
   const panelRef = useRef(null);
-  const selectedMunicipality = municipalities.find(
-    (m) => String(m.id) === String(formData.municipality_id)
-  );
 
   // Close when clicking outside
   useEffect(() => {
@@ -30,25 +27,27 @@ const PlanSideBar = ({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
   return (
     <div
       className={`fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity ${
-        isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        isOpen
+          ? "opacity-100 pointer-events-auto"
+          : "opacity-0 pointer-events-none"
       } z-50 flex justify-end`}
     >
       <div
         ref={panelRef}
         className={`w-full max-w-xl h-full bg-white shadow-xl p-6 overflow-y-auto transition-transform duration-300 ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
+          isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">
-            {editingPlan ? 'تعديل خطة الجمع' : 'إضافة خطة جمع'}
+            {editingPlan ? "تعديل قالب الخطة الدورية" : "إضافة قالب خطة دورية"}
           </h2>
           <button onClick={onClose} className="text-gray-600 text-xl">
             ×
@@ -68,7 +67,9 @@ const PlanSideBar = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">البلدية</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                البلدية
+              </label>
               <select
                 name="municipality_id"
                 value={formData.municipality_id}
@@ -84,51 +85,70 @@ const PlanSideBar = ({
                 ))}
               </select>
               {errors.municipality && (
-                <p className="text-red-600 text-sm mt-1">{errors.municipality}</p>
+                <p className="text-red-600 text-sm mt-1">
+                  {errors.municipality}
+                </p>
               )}
             </div>
 
-            <FormInput
-              label="تاريخ الجمع"
-              type="date"
-              name="collection_date"
-              value={formData.collection_date}
-              onChange={handleChange}
-              error={errors.collection_date}
-              required
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                أيام التكرار
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  "الإثنين",
+                  "الثلاثاء",
+                  "الأربعاء",
+                  "الخميس",
+                  "الجمعة",
+                  "السبت",
+                  "الأحد",
+                ].map((day, index) => (
+                  <label
+                    key={index}
+                    className="inline-flex items-center cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={
+                        formData.weekdays &&
+                        formData.weekdays.includes(String(index))
+                      }
+                      onChange={(e) => {
+                        const value = String(index);
+                        const current = formData.weekdays || [];
+                        const newWeekdays = e.target.checked
+                          ? [...current, value]
+                          : current.filter((d) => d !== value);
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">حدد نقطة البداية (اختياري)</label>
-            <select
-              name="start_landfill_id"
-              value={formData.start_landfill_id}
-              onChange={handleChange}
-              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">بدون تحديد</option>
-              
-              <option value="municipality">
-                {selectedMunicipality
-                  ? `مديرية ${selectedMunicipality.name}`
-                  : 'استخدام المديرية المختارة'}
-              </option>
-              <option value="landfills" disabled className="bg-gray-100">المكبات</option>
-              {landfills.map((lf) => (
-                <option key={lf.id} value={lf.id}>
-                  {lf.name}
-                </option>
-              ))}
-            </select>
-            {errors.start_landfill && (
-              <p className="text-red-600 text-sm mt-1">{errors.start_landfill}</p>
-            )}
+                        // Custom event-like object for handler compatibility
+                        handleChange({
+                          target: {
+                            name: "weekdays",
+                            value: newWeekdays,
+                          },
+                        });
+                      }}
+                      className="hidden peer"
+                    />
+                    <span className="px-3 py-1 text-xs rounded-full border border-gray-300 peer-checked:bg-blue-600 peer-checked:text-white hover:bg-gray-50 transition-colors">
+                      {day}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {errors.weekdays && (
+                <p className="text-red-600 text-sm mt-1">{errors.weekdays}</p>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">المركبة</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                المركبة
+              </label>
               <select
                 name="vehicle_id"
                 value={formData.vehicle_id}
@@ -150,7 +170,9 @@ const PlanSideBar = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">الحاويات</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              الحاويات
+            </label>
             <div className="max-h-48 overflow-y-auto border rounded-lg p-3 space-y-2">
               {bins.length === 0 && (
                 <p className="text-gray-500 text-sm">لا توجد حاويات متاحة.</p>
@@ -164,12 +186,15 @@ const PlanSideBar = ({
                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
                   <span>
-                    {bin.name} ({bin.latitude}, {bin.longitude}) - السعة: {bin.capacity}
+                    {bin.name} ({bin.latitude}, {bin.longitude}) - السعة:{" "}
+                    {bin.capacity}
                   </span>
                 </label>
               ))}
             </div>
-            {errors.bins && <p className="text-red-600 text-sm mt-1">{errors.bins}</p>}
+            {errors.bins && (
+              <p className="text-red-600 text-sm mt-1">{errors.bins}</p>
+            )}
           </div>
 
           <div className="flex gap-2 mt-6">
@@ -194,7 +219,7 @@ const PlanSideBar = ({
               disabled={loading}
               className="flex-1 bg-blue-600 text-white py-2 rounded-lg disabled:opacity-50"
             >
-              {editingPlan ? 'تحديث' : 'إنشاء'}
+              {editingPlan ? "تحديث" : "إنشاء"}
             </button>
           </div>
         </form>
@@ -204,4 +229,3 @@ const PlanSideBar = ({
 };
 
 export default PlanSideBar;
-
