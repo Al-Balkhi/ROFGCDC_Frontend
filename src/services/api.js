@@ -279,13 +279,13 @@ export const plannerAPI = {
   getSolution: (id) =>
     api.get(`/solutions/${id}/`),
   getScenarioTemplates: (params) =>
-    api.get('/scenario_templates/', { params }),
+    api.get('/scenario-templates/', { params }),
   createScenarioTemplate: (data) =>
-    api.post('/scenario_templates/', data),
+    api.post('/scenario-templates/', data),
   updateScenarioTemplate: (id, data) =>
-    api.patch(`/scenario_templates/${id}/`, data),
+    api.patch(`/scenario-templates/${id}/`, data),
   deleteScenarioTemplate: (id) =>
-    api.delete(`/scenario_templates/${id}/`),
+    api.delete(`/scenario-templates/${id}/`),
 };
 
 export default api;

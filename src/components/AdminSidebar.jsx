@@ -6,6 +6,7 @@ import {
   Package,
   Truck,
   FileText,
+  Compass,
   Trash2,
   Landmark,
   ChevronRight,
@@ -22,6 +23,7 @@ export default function Sidebar() {
     { label: "مكبات القمامة", icon: <Package />, to: "/dashboard/admin/landfills" },
     { label: "الحاويات", icon: <Trash2 />, to: "/dashboard/admin/bins" },
     { label: "الشاحنات", icon: <Truck />, to: "/dashboard/admin/vehicles" },
+    { label: "سجل الخطط", icon: <Compass />, to: "/dashboard/admin/scenarios" },
     { label: "سجل النشاطات", icon: <FileText />, to: "/dashboard/admin/activity-log" },
   ];
 
@@ -32,7 +34,6 @@ export default function Sidebar() {
     >
       {/* Logo & Collapse button */}
       <div className="flex items-center justify-between px-4 py-5">
-        
         {/* Logo */}
         <div
           className="flex items-center gap-3 cursor-pointer"
@@ -40,11 +41,7 @@ export default function Sidebar() {
             if (sidebarCollapsed) toggleSidebar();
           }}
         >
-          <img
-            src="/vite.svg"
-            alt="logo"
-            className="w-8 h-8"
-          />
+          <img src="/vite.svg" alt="logo" className="w-8 h-8" />
           {!sidebarCollapsed && (
             <span className="text-nowrap font-bold text-lg">منصة اماطة</span>
           )}

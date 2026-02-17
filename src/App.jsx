@@ -59,6 +59,7 @@ function App() {
               <Route path="bins" element={<Bins />} />
               <Route path="vehicles" element={<Vehicles />} />
               <Route path="activity-log" element={<ActivityLog />} />
+              <Route path="scenarios" element={<PlannerScenarios />} />
             </Route>
 
             {/* Protected routes - Planner only */}

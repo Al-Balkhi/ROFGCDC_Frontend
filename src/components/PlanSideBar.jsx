@@ -97,13 +97,13 @@ const PlanSideBar = ({
               </label>
               <div className="flex flex-wrap gap-2">
                 {[
+                  "السبت",
+                  "الأحد",
                   "الإثنين",
                   "الثلاثاء",
                   "الأربعاء",
                   "الخميس",
                   "الجمعة",
-                  "السبت",
-                  "الأحد",
                 ].map((day, index) => (
                   <label
                     key={index}

@@ -4,6 +4,8 @@ import Table from "../components/Table";
 import PlanSideBar from "../components/PlanSideBar";
 import { useToast } from "../components/ToastContainer";
 import Pagination from "../components/Pagination";
+import useAuthStore from "../store/authStore";
+import { ROLES } from "../constants/roles";
 
 // --- مكون قائمة الفلترة (كما هو) ---
 const PlanFiltersDropdown = ({
@@ -12,50 +14,45 @@ const PlanFiltersDropdown = ({
   municipalities,
   selectedMunicipality,
   setSelectedMunicipality,
-  dateFilter,
-  setDateFilter,
   weekDayFilter,
   setWeekDayFilter,
+  activeTab, // Added
   onReset,
   onClose,
 }) => (
   <div className="absolute top-12 left-0 w-72 bg-white border rounded-lg shadow-xl z-50 p-4 animate-fade-in-down">
     <div className="flex justify-between items-center mb-4 border-b pb-2">
       <h3 className="font-bold text-gray-700">تصفية الخطط</h3>
-      <button
-        onClick={onClose}
-        className="text-gray-400 hover:text-red-500 transition-colors"
-      >
-        ✕
-      </button>
     </div>
 
-    {/* فلتر الحالة */}
-    <div className="mb-4">
-      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
-        حالة الخطة
-      </label>
-      <div className="flex bg-gray-100 p-1 rounded-lg">
-        <button
-          onClick={() => setFilterStatus("active")}
-          className={`flex-1 py-1 text-sm rounded-md transition-all ${filterStatus === "active" ? "bg-white text-blue-600 shadow-sm font-semibold" : "text-gray-500 hover:text-gray-700"}`}
-        >
-          نشطة
-        </button>
-        <button
-          onClick={() => setFilterStatus("archived")}
-          className={`flex-1 py-1 text-sm rounded-md transition-all ${filterStatus === "archived" ? "bg-white text-blue-600 shadow-sm font-semibold" : "text-gray-500 hover:text-gray-700"}`}
-        >
-          منتهية
-        </button>
-        <button
-          onClick={() => setFilterStatus("all")}
-          className={`flex-1 py-1 text-sm rounded-md transition-all ${filterStatus === "all" ? "bg-white text-blue-600 shadow-sm font-semibold" : "text-gray-500 hover:text-gray-700"}`}
-        >
-          الكل
-        </button>
+    {/* فلتر الحالة - يظهر فقط في الخطط اليومية */}
+    {activeTab === "scenarios" && (
+      <div className="mb-4 animate-fade-in">
+        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+          حالة الخطة
+        </label>
+        <div className="flex bg-gray-100 p-1 rounded-lg">
+          <button
+            onClick={() => setFilterStatus("active")}
+            className={`flex-1 py-1 text-sm rounded-md transition-all ${filterStatus === "active" ? "bg-white text-blue-600 shadow-sm font-semibold" : "text-gray-500 hover:text-gray-700"}`}
+          >
+            قيد الانجاز
+          </button>
+          <button
+            onClick={() => setFilterStatus("archived")}
+            className={`flex-1 py-1 text-sm rounded-md transition-all ${filterStatus === "archived" ? "bg-white text-blue-600 shadow-sm font-semibold" : "text-gray-500 hover:text-gray-700"}`}
+          >
+            منجزة
+          </button>
+          <button
+            onClick={() => setFilterStatus("all")}
+            className={`flex-1 py-1 text-sm rounded-md transition-all ${filterStatus === "all" ? "bg-white text-blue-600 shadow-sm font-semibold" : "text-gray-500 hover:text-gray-700"}`}
+          >
+            الكل
+          </button>
+        </div>
       </div>
-    </div>
+    )}
 
     {/* فلتر البلدية */}
     <div className="mb-4">
@@ -76,19 +73,6 @@ const PlanFiltersDropdown = ({
       </select>
     </div>
 
-    {/* فلتر التاريخ */}
-    <div className="mb-4">
-      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
-        تاريخ الجمع
-      </label>
-      <input
-        type="date"
-        value={dateFilter}
-        onChange={(e) => setDateFilter(e.target.value)}
-        className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-      />
-    </div>
-
     {/* فلتر يوم الأسبوع */}
     <div className="mb-4">
       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
@@ -101,13 +85,13 @@ const PlanFiltersDropdown = ({
       >
         <option value="">كافة الأيام</option>
         {[
+          "السبت",
+          "الأحد",
           "الإثنين",
           "الثلاثاء",
           "الأربعاء",
           "الخميس",
           "الجمعة",
-          "السبت",
-          "الأحد",
         ].map((day, index) => (
           <option key={index} value={index}>
             {day}
@@ -138,6 +122,9 @@ const normalizeList = (data) =>
 
 const PlannerScenarios = () => {
   const { addToast } = useToast();
+  const user = useAuthStore((state) => state.user);
+  const isPlanner = user?.role === ROLES.PLANNER;
+  const isSuperuser = user?.is_superuser;
 
   const [scenarios, setScenarios] = useState([]);
   const [municipalities, setMunicipalities] = useState([]);
@@ -163,7 +150,6 @@ const PlannerScenarios = () => {
 
   const [filterStatus, setFilterStatus] = useState("active");
   const [selectedMunicipality, setSelectedMunicipality] = useState("");
-  const [dateFilter, setDateFilter] = useState("");
   const [weekDayFilter, setWeekDayFilter] = useState("");
 
   const [formData, setFormData] = useState({
@@ -221,7 +207,6 @@ const PlannerScenarios = () => {
         else if (filterStatus === "active") params.is_archived = "false";
 
         if (selectedMunicipality) params.municipality = selectedMunicipality;
-        if (dateFilter) params.collection_date = dateFilter;
         if (weekDayFilter !== "") params.week_day = weekDayFilter;
 
         const res = await plannerAPI.getScenarios(params);
@@ -248,15 +233,20 @@ const PlannerScenarios = () => {
       debouncedSearch,
       filterStatus,
       selectedMunicipality,
-      dateFilter,
       weekDayFilter,
     ],
   );
 
   const fetchTemplates = useCallback(
     async (page = 1) => {
+      setLoading(true);
       try {
-        const res = await plannerAPI.getScenarioTemplates({ page });
+        const params = { page };
+        if (debouncedSearch) params.search = debouncedSearch;
+        if (selectedMunicipality) params.municipality = selectedMunicipality;
+        if (weekDayFilter !== "") params.week_day = weekDayFilter;
+
+        const res = await plannerAPI.getScenarioTemplates(params);
         if (res.data?.results !== undefined) {
           setTemplates(res.data.results || []);
           setTotalCount(res.data.count || 0);
@@ -267,9 +257,11 @@ const PlannerScenarios = () => {
       } catch (error) {
         console.error(error);
         addToast("فشل تحميل القوالب", "error");
+      } finally {
+        setLoading(false);
       }
     },
-    [addToast],
+    [addToast, debouncedSearch, selectedMunicipality, weekDayFilter],
   );
 
   const fetchFormOptions = useCallback(
@@ -298,7 +290,6 @@ const PlannerScenarios = () => {
     debouncedSearch,
     filterStatus,
     selectedMunicipality,
-    dateFilter,
     activeTab,
     weekDayFilter,
   ]);
@@ -572,17 +563,55 @@ const PlannerScenarios = () => {
       {
         key: "status",
         label: "الحالة",
-        render: (_, row) => (
-          <span
-            className={`px-2 py-1 rounded text-xs font-semibold ${row.is_expired ? "bg-gray-100 text-gray-600" : "bg-green-100 text-green-700"}`}
-          >
-            {row.is_expired ? "منتهية الصلاحية" : "نشطة"}
-          </span>
-        ),
+        render: (_, row) => {
+          const statusMap = {
+            pending: {
+              label: "معلقة",
+              classes: "bg-yellow-100 text-yellow-700",
+            },
+            in_progress: {
+              label: "قيد الانجاز",
+              classes: "bg-blue-100 text-blue-700",
+            },
+            completed: {
+              label: "منجزة",
+              classes: "bg-green-100 text-green-700",
+            },
+          };
+          const s = statusMap[row.status] || {
+            label: row.status,
+            classes: "bg-gray-100 text-gray-700",
+          };
+          return (
+            <span
+              className={`px-2 py-1 rounded text-xs font-semibold ${s.classes}`}
+            >
+              {s.label}
+            </span>
+          );
+        },
       },
-      // Actions column removed for Read-Only Scenarios
+      ...(!isPlanner
+        ? [
+            {
+              key: "creator",
+              label: "المخطط",
+              render: (_, row) =>
+                row.created_by?.username || row.created_by || "-",
+            },
+          ]
+        : []),
+      ...(isSuperuser
+        ? [
+            {
+              key: "admin_creator",
+              label: "المدير المسؤول",
+              render: (_, row) => row.created_by?.admin_name || "-",
+            },
+          ]
+        : []),
     ],
-    [],
+    [isPlanner, isSuperuser],
   );
 
   const templateColumns = useMemo(
@@ -598,13 +627,13 @@ const PlannerScenarios = () => {
         label: "أيام التكرار",
         render: (_, row) => {
           const days = [
+            "السبت",
+            "الأحد",
             "الإثنين",
             "الثلاثاء",
             "الأربعاء",
             "الخميس",
             "الجمعة",
-            "السبت",
-            "الأحد",
           ];
           return row.weekdays
             ? row.weekdays
@@ -624,39 +653,51 @@ const PlannerScenarios = () => {
         label: "عدد الحاويات",
         render: (_, row) => row.bins?.length || 0,
       },
-      {
-        key: "status",
-        label: "الحالة",
-        render: (_, row) => (
-          <span
-            className={`px-2 py-1 rounded text-xs font-semibold ${row.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
-          >
-            {row.is_active ? "فعال" : "غير فعال"}
-          </span>
-        ),
-      },
-      {
-        key: "actions",
-        label: "إجراءات",
-        render: (_, row) => (
-          <div className="flex gap-3">
-            <button
-              onClick={() => openSidePanel(row)}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
-            >
-              تعديل
-            </button>
-            <button
-              onClick={() => handleDeleteRow(row)}
-              className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
-            >
-              حذف
-            </button>
-          </div>
-        ),
-      },
+      ...(isPlanner
+        ? [
+            {
+              key: "actions",
+              label: "إجراءات",
+              render: (_, row) => (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => openSidePanel(row)}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+                  >
+                    تعديل
+                  </button>
+                  <button
+                    onClick={() => handleDeleteRow(row)}
+                    className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+                  >
+                    حذف
+                  </button>
+                </div>
+              ),
+            },
+          ]
+        : []),
+      ...(!isPlanner
+        ? [
+            {
+              key: "creator",
+              label: "المخطط",
+              render: (_, row) =>
+                row.created_by?.username || row.created_by || "-",
+            },
+          ]
+        : []),
+      ...(isSuperuser
+        ? [
+            {
+              key: "admin_creator",
+              label: "المدير المسؤول",
+              render: (_, row) => row.created_by?.admin_name || "-",
+            },
+          ]
+        : []),
     ],
-    [openSidePanel, handleDeleteRow],
+    [openSidePanel, handleDeleteRow, isPlanner, isSuperuser],
   );
 
   return (
@@ -664,12 +705,14 @@ const PlannerScenarios = () => {
       {/* رأس الصفحة */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">إدارة الخطط</h1>
-        <button
-          onClick={() => openSidePanel()}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
-        >
-          <span>+</span> إنشاء خطة دورية
-        </button>
+        {isPlanner && (
+          <button
+            onClick={() => openSidePanel()}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
+          >
+            <span>+</span> إنشاء خطة دورية
+          </button>
+        )}
       </div>
 
       <div className="mb-6 border-b">
@@ -697,7 +740,7 @@ const PlannerScenarios = () => {
             placeholder={
               activeTab === "scenarios"
                 ? "ابحث باسم الخطة..."
-                : "ابحث باسم القالب..."
+                : "ابحث باسم الخطة..."
             }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -712,10 +755,7 @@ const PlannerScenarios = () => {
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`px-4 py-2 border rounded-lg flex items-center gap-2 transition-all ${
-              showFilters ||
-              selectedMunicipality ||
-              dateFilter ||
-              filterStatus !== "active"
+              showFilters || selectedMunicipality || filterStatus !== "active"
                 ? "bg-blue-50 border-blue-200 text-blue-700 shadow-sm"
                 : "bg-white hover:bg-gray-50"
             }`}
@@ -735,9 +775,7 @@ const PlannerScenarios = () => {
               />
             </svg>
             فلترة
-            {(selectedMunicipality ||
-              dateFilter ||
-              filterStatus !== "active") && (
+            {(selectedMunicipality || filterStatus !== "active") && (
               <span className="bg-blue-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
                 !
               </span>
@@ -751,15 +789,13 @@ const PlannerScenarios = () => {
               municipalities={municipalities}
               selectedMunicipality={selectedMunicipality}
               setSelectedMunicipality={setSelectedMunicipality}
-              dateFilter={dateFilter}
-              setDateFilter={setDateFilter}
               weekDayFilter={weekDayFilter}
               setWeekDayFilter={setWeekDayFilter}
+              activeTab={activeTab}
               onReset={() => {
                 setSearch("");
                 setFilterStatus("active");
                 setSelectedMunicipality("");
-                setDateFilter("");
                 setWeekDayFilter("");
               }}
               onClose={() => setShowFilters(false)}
