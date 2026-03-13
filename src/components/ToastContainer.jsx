@@ -1,5 +1,5 @@
-import { useState, useCallback, createContext, useContext } from 'react';
-import Toast from './Toast';
+import { useState, useCallback, createContext, useContext } from "react";
+import Toast from "./Toast";
 
 const ToastContext = createContext();
 
@@ -8,7 +8,7 @@ let toastId = 0;
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = useCallback((message, type = 'info', duration = 5000) => {
+  const addToast = useCallback((message, type = "info", duration = 5000) => {
     const id = toastId++;
     const newToast = { id, message, type, duration };
     setToasts((prev) => [...prev, newToast]);
@@ -51,9 +51,8 @@ export const useToast = () => {
   return context;
 };
 
-const ToastContainer = ({ toasts, removeToast }) => {
-  return null; // Not used anymore, kept for compatibility
-};
+// const ToastContainer = ({ toasts, removeToast }) => {
+//   return null; // Not used anymore, kept for compatibility
+// };
 
-export default ToastContainer;
-
+// export default ToastContainer;

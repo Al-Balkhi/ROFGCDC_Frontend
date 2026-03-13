@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import FormInput from './FormInput';
 import LocationPickerModal from './LocationPickerModal';
 
-
 const MunicipalitySidePanel = ({
   isOpen,
   onClose,
@@ -12,6 +11,7 @@ const MunicipalitySidePanel = ({
   formData,
   errors,
   handleChange,
+  planners = [],
 }) => {
   const panelRef = useRef(null);
   const [showMapPicker, setShowMapPicker] = useState(false);
@@ -73,7 +73,7 @@ const MunicipalitySidePanel = ({
               <button
                 type="button"
                 onClick={() => setShowMapPicker(true)}
-                className="w-full bg-indigo-50 text-indigo-700 py-2 rounded-lg border border-indigo-200 hover:bg-indigo-100 flex items-center justify-center gap-2"
+                className="w-full bg-indigo-50 text-indigo-700 py-2 rounded-lg border border-indigo-200 hover:bg-indigo-100 flex items-center justify-center gap-2 transition-colors"
               >
                 📍 حدد الموقع على الخريطة
               </button>
@@ -88,20 +88,40 @@ const MunicipalitySidePanel = ({
               )}
             </div>
 
-
+            <div className="mb-4">
+              <label className="block mb-1 text-gray-700 font-medium text-sm">المخطط المسؤول عن المديرية</label>
+              <select
+                name="planner_id"
+                value={formData.planner_id || ""}
+                onChange={handleChange}
+                // تمت إزالة خاصية size هنا ليصبح قائمة منسدلة عادية
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-shadow bg-white"
+              >
+                <option value="">-- اختر المخطط --</option>
+                {planners.map((planner) => (
+                  <option key={planner.id} value={planner.id}>
+                    {planner.username || planner.email}
+                  </option>
+                ))}
+              </select>
+              
+              {errors.planner_id && (
+                <p className="text-red-500 text-sm mt-1">{errors.planner_id}</p>
+              )}
+            </div>
 
             <div className="flex gap-2 mt-6">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 bg-gray-300 py-2 rounded-lg"
+                className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-colors"
               >
                 إلغاء
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg disabled:opacity-50"
+                className="flex-1 bg-blue-600 text-white py-2 rounded-lg disabled:opacity-50 hover:bg-blue-700 transition-colors"
               >
                 {editingMunicipality ? 'تحديث' : 'إنشاء'}
               </button>

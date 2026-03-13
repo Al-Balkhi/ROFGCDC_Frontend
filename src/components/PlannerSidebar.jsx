@@ -4,7 +4,9 @@ import {
   Home,
   Map,
   Route,
-  ChevronRight
+  AlertCircle,
+  ChevronRight,
+  Bell,
 } from "lucide-react";
 
 export default function PlannerSidebar() {
@@ -13,8 +15,18 @@ export default function PlannerSidebar() {
 
   const menus = [
     { label: "الرئيسية", icon: <Home />, to: "/dashboard/planner" },
+    {
+      label: "بلاغات المواطنين",
+      icon: <AlertCircle />,
+      to: "/dashboard/planner/citizen-reports",
+    },
     { label: "خطط الجمع", icon: <Map />, to: "/dashboard/planner/scenarios" },
-    { label: "الحلول المثلى", icon: <Route />, to: "/dashboard/planner/solutions" },
+    {
+      label: "الحلول المثلى",
+      icon: <Route />,
+      to: "/dashboard/planner/solutions",
+    },
+    { label: "الإشعارات", icon: <Bell />, to: "/notifications" },
   ];
 
   return (

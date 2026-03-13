@@ -80,16 +80,25 @@ const VehicleSidePanel = ({
             required
           />
 
-          <FormInput
-            label="السعة"
-            type="number"
-            name="capacity"
-            value={formData.capacity}
-            onChange={handleChange}
-            error={errors.capacity}
-            min="1"
-            required
-          />
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              السعة
+            </label>
+            <select
+              name="capacity"
+              value={formData.capacity}
+              onChange={handleChange}
+              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+              required
+            >
+              <option value="" disabled>اختر السعة (لتر)</option>
+              <option value="5000">5000</option>
+              <option value="15000">15000</option>
+            </select>
+            {errors.capacity && (
+              <p className="text-red-600 text-sm mt-1">{errors.capacity}</p>
+            )}
+          </div>
 
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">

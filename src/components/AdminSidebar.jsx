@@ -9,7 +9,9 @@ import {
   Compass,
   Trash2,
   Landmark,
+  BellPlus,
   ChevronRight,
+  Bell,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -18,13 +20,35 @@ export default function Sidebar() {
 
   const menus = [
     { label: "الرئيسية", icon: <Home />, to: "/dashboard/admin" },
-    { label: "إدارة المستخدمين", icon: <Users />, to: "/dashboard/admin/users" },
-    { label: "المديريات", icon: <Landmark />, to: "/dashboard/admin/municipalities" },
-    { label: "مكبات القمامة", icon: <Package />, to: "/dashboard/admin/landfills" },
+    {
+      label: "إدارة المستخدمين",
+      icon: <Users />,
+      to: "/dashboard/admin/users",
+    },
+    {
+      label: "المديريات",
+      icon: <Landmark />,
+      to: "/dashboard/admin/municipalities",
+    },
+    {
+      label: "مكبات القمامة",
+      icon: <Package />,
+      to: "/dashboard/admin/landfills",
+    },
     { label: "الحاويات", icon: <Trash2 />, to: "/dashboard/admin/bins" },
+    {
+      label: "الطلبات",
+      icon: <BellPlus />,
+      to: "/dashboard/admin/bin-requests",
+    },
     { label: "الشاحنات", icon: <Truck />, to: "/dashboard/admin/vehicles" },
     { label: "سجل الخطط", icon: <Compass />, to: "/dashboard/admin/scenarios" },
-    { label: "سجل النشاطات", icon: <FileText />, to: "/dashboard/admin/activity-log" },
+    {
+      label: "سجل النشاطات",
+      icon: <FileText />,
+      to: "/dashboard/admin/activity-log",
+    },
+    { label: "الإشعارات", icon: <Bell />, to: "/notifications" },
   ];
 
   return (

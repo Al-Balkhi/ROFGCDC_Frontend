@@ -1,4 +1,10 @@
-const Table = ({ columns, data, loading = false }) => {
+const Table = ({
+  columns,
+  data,
+  loading = false,
+  highlightId = null,
+  rowIdPrefix = "row",
+}) => {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -35,15 +41,28 @@ const Table = ({ columns, data, loading = false }) => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {data.map((row, rowIndex) => (
-              <tr key={rowIndex} className="hover:bg-gray-50">
-                {columns.map((column) => (
-                  <td key={column.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {column.render ? column.render(row[column.key], row) : row[column.key]}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {data.map((row, rowIndex) => {
+              const isHighlighted =
+                highlightId && String(row.id) === String(highlightId);
+              return (
+                <tr
+                  key={row.id || rowIndex}
+                  id={`${rowIdPrefix}-${row.id}`}
+                  className={`transition-colors ${isHighlighted ? "bg-blue-50 shadow-inner ring-1 ring-blue-400 z-10 relative" : "hover:bg-gray-50"}`}
+                >
+                  {columns.map((column) => (
+                    <td
+                      key={column.key}
+                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                    >
+                      {column.render
+                        ? column.render(row[column.key], row)
+                        : row[column.key]}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -52,4 +71,3 @@ const Table = ({ columns, data, loading = false }) => {
 };
 
 export default Table;
-

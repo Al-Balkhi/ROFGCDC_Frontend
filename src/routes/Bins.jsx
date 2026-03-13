@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
-import useAuthStore from '../store/authStore';
-import { binsAPI } from '../services/api';
-import Table from '../components/Table';
-import FormInput from '../components/FormInput';
-import { useToast } from '../components/ToastContainer';
-import BinSidePanel from '../components/BinSidePanel';
-import Pagination from '../components/Pagination';
+import { useState, useEffect, useCallback } from "react";
+import useAuthStore from "../store/authStore";
+import { binsAPI } from "../services/api";
+import Table from "../components/Table";
+import FormInput from "../components/FormInput";
+import { useToast } from "../components/ToastContainer";
+import BinSidePanel from "../components/BinSidePanel";
+import Pagination from "../components/Pagination";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const Bins = () => {
   const { addToast } = useToast();
@@ -17,38 +18,42 @@ const Bins = () => {
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [editingBin, setEditingBin] = useState(null);
   const [formData, setFormData] = useState({
-    name: '',
-    latitude: '',
-    longitude: '',
-    capacity: '',
+    name: "",
+    latitude: "",
+    longitude: "",
+    capacity: "",
     is_active: true,
-    municipality_id: '',
+    municipality_id: "",
   });
   const [errors, setErrors] = useState({});
+  const [confirmState, setConfirmState] = useState({ open: false });
 
-  const fetchBins = useCallback(async (page = 1) => {
-    setLoading(true);
-    try {
-      const params = { page };
-      const response = await binsAPI.getBins(params);
-      
-      // Handle paginated response: { results: [...], count: ... } or fallback to array
-      if (response.data?.results !== undefined) {
-        setBins(response.data.results || []);
-        setTotalCount(response.data.count || 0);
-      } else if (Array.isArray(response.data)) {
-        setBins(response.data);
-        setTotalCount(response.data.length);
-      } else {
-        setBins([]);
-        setTotalCount(0);
+  const fetchBins = useCallback(
+    async (page = 1) => {
+      setLoading(true);
+      try {
+        const params = { page };
+        const response = await binsAPI.getBins(params);
+
+        // Handle paginated response: { results: [...], count: ... } or fallback to array
+        if (response.data?.results !== undefined) {
+          setBins(response.data.results || []);
+          setTotalCount(response.data.count || 0);
+        } else if (Array.isArray(response.data)) {
+          setBins(response.data);
+          setTotalCount(response.data.length);
+        } else {
+          setBins([]);
+          setTotalCount(0);
+        }
+      } catch {
+        addToast("فشل تحميل الحاويات", "error");
+      } finally {
+        setLoading(false);
       }
-    } catch {
-      addToast('فشل تحميل الحاويات', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [addToast]);
+    },
+    [addToast],
+  );
 
   useEffect(() => {
     fetchBins(currentPage);
@@ -62,22 +67,22 @@ const Bins = () => {
     if (bin) {
       setEditingBin(bin);
       setFormData({
-        name: bin.name || '',
-        latitude: bin.latitude || '',
-        longitude: bin.longitude || '',
-        capacity: bin.capacity || '',
+        name: bin.name || "",
+        latitude: bin.latitude || "",
+        longitude: bin.longitude || "",
+        capacity: bin.capacity || "",
         is_active: bin.is_active !== undefined ? bin.is_active : true,
-        municipality_id: bin.municipality?.id || '',
+        municipality_id: bin.municipality?.id || "",
       });
     } else {
       setEditingBin(null);
       setFormData({
-        name: '',
-        latitude: '',
-        longitude: '',
-        capacity: '',
+        name: "",
+        latitude: "",
+        longitude: "",
+        capacity: "",
         is_active: true,
-        municipality_id: '',
+        municipality_id: "",
       });
     }
     setErrors({});
@@ -88,12 +93,12 @@ const Bins = () => {
     setSidePanelOpen(false);
     setEditingBin(null);
     setFormData({
-      name: '',
-      latitude: '',
-      longitude: '',
-      capacity: '',
+      name: "",
+      latitude: "",
+      longitude: "",
+      capacity: "",
       is_active: true,
-      municipality_id: '',
+      municipality_id: "",
     });
     setErrors({});
   };
@@ -102,35 +107,45 @@ const Bins = () => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === "checkbox" ? checked : value,
     }));
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
   const validate = () => {
     const newErrors = {};
     if (!formData.name.trim()) {
-      newErrors.name = 'الاسم مطلوب';
+      newErrors.name = "الاسم مطلوب";
     }
     if (!formData.latitude) {
-      newErrors.latitude = 'خط العرض مطلوب';
-    } else if (isNaN(formData.latitude) || formData.latitude < 33.40 || formData.latitude > 33.60) {
-      newErrors.latitude = 'خط العرض يجب أن يكون بين 33.40 و 33.60 (حدود مدينة دمشق)';
+      newErrors.latitude = "خط العرض مطلوب";
+    } else if (
+      isNaN(formData.latitude) ||
+      formData.latitude < 33.4 ||
+      formData.latitude > 33.6
+    ) {
+      newErrors.latitude =
+        "خط العرض يجب أن يكون بين 33.40 و 33.60 (حدود مدينة دمشق)";
     }
     if (!formData.longitude) {
-      newErrors.longitude = 'خط الطول مطلوب';
-    } else if (isNaN(formData.longitude) || formData.longitude < 36.10 || formData.longitude > 36.40) {
-      newErrors.longitude = 'خط الطول يجب أن يكون بين 36.10 و 36.40 (حدود مدينة دمشق)';
+      newErrors.longitude = "خط الطول مطلوب";
+    } else if (
+      isNaN(formData.longitude) ||
+      formData.longitude < 36.1 ||
+      formData.longitude > 36.4
+    ) {
+      newErrors.longitude =
+        "خط الطول يجب أن يكون بين 36.10 و 36.40 (حدود مدينة دمشق)";
     }
     if (!formData.capacity) {
-      newErrors.capacity = 'السعة مطلوبة';
+      newErrors.capacity = "السعة مطلوبة";
     } else if (isNaN(formData.capacity) || formData.capacity < 1) {
-      newErrors.capacity = 'السعة يجب أن تكون رقم موجب';
+      newErrors.capacity = "السعة يجب أن تكون رقم موجب";
     }
     if (!formData.municipality_id) {
-      newErrors.municipality = 'البلدية مطلوبة';
+      newErrors.municipality = "البلدية مطلوبة";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -155,51 +170,58 @@ const Bins = () => {
 
       if (editingBin) {
         await binsAPI.updateBin(editingBin.id, submitData);
-        addToast('تم تحديث الحاوية بنجاح', 'success');
+        addToast("تم تحديث الحاوية بنجاح", "success");
       } else {
         await binsAPI.createBin(submitData);
-        addToast('تم إنشاء الحاوية بنجاح', 'success');
+        addToast("تم إنشاء الحاوية بنجاح", "success");
       }
       closeSidePanel();
       fetchBins(currentPage);
     } catch (error) {
       const errorData = error.response?.data || {};
       setErrors(errorData);
-      addToast('فشل العملية', 'error');
+      addToast("فشل العملية", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('هل أنت متأكد من حذف هذه الحاوية؟')) return;
-    try {
-      await binsAPI.deleteBin(id);
-      addToast('تم حذف الحاوية بنجاح', 'success');
-      fetchBins(currentPage);
-    } catch {
-      addToast('فشل حذف الحاوية', 'error');
-    }
+  const handleDelete = (id) => {
+    setConfirmState({
+      open: true,
+      message: "هل أنت متأكد من حذف هذه الحاوية؟",
+      onConfirm: async () => {
+        try {
+          await binsAPI.deleteBin(id);
+          addToast("تم حذف الحاوية بنجاح", "success");
+          fetchBins(currentPage);
+        } catch {
+          addToast("فشل حذف الحاوية", "error");
+        }
+      },
+    });
   };
 
   const currentUser = useAuthStore((state) => state.user);
 
   const columns = [
-    { key: 'name', label: 'الاسم' },
-    { key: 'latitude', label: 'خط العرض' },
-    { key: 'longitude', label: 'خط الطول' },
-    { key: 'capacity', label: 'السعة' },
+    { key: "name", label: "الاسم" },
+    { key: "latitude", label: "خط العرض" },
+    { key: "longitude", label: "خط الطول" },
+    { key: "capacity", label: "السعة" },
     {
-      key: 'municipality',
-      label: 'البلدية',
-      render: (_, row) => row.municipality?.name || '—',
+      key: "municipality",
+      label: "البلدية",
+      render: (_, row) => row.municipality?.name || "—",
     },
     {
-      key: 'is_active',
-      label: 'الحالة',
+      key: "is_active",
+      label: "الحالة",
       render: (value) => (
-        <span className={`px-2 py-1 rounded text-xs ${value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-          {value ? 'نشط' : 'غير نشط'}
+        <span
+          className={`px-2 py-1 rounded text-xs ${value ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+        >
+          {value ? "نشط" : "غير نشط"}
         </span>
       ),
     },
@@ -207,32 +229,32 @@ const Bins = () => {
 
   if (currentUser?.is_superuser) {
     columns.push({
-      key: 'created_by',
-      label: 'تم الإنشاء بواسطة',
-      render: (_, row) => row.created_by || '—',
+      key: "created_by",
+      label: "تم الإنشاء بواسطة",
+      render: (_, row) => row.created_by || "—",
     });
   }
 
   columns.push({
-      key: 'actions',
-      label: 'الإجراءات',
-      render: (_, row) => (
-        <div className="flex gap-2">
-          <button
-            onClick={() => openSidePanel(row)}
-            className="text-blue-600 hover:text-blue-800 text-sm"
-          >
-            تعديل
-          </button>
-          <button
-            onClick={() => handleDelete(row.id)}
-            className="text-red-600 hover:text-red-800 text-sm"
-          >
-            حذف
-          </button>
-        </div>
-      ),
-    });
+    key: "actions",
+    label: "الإجراءات",
+    render: (_, row) => (
+      <div className="flex gap-2">
+        <button
+          onClick={() => openSidePanel(row)}
+          className="text-blue-600 hover:text-blue-800 text-sm"
+        >
+          تعديل
+        </button>
+        <button
+          onClick={() => handleDelete(row.id)}
+          className="text-red-600 hover:text-red-800 text-sm"
+        >
+          حذف
+        </button>
+      </div>
+    ),
+  });
 
   return (
     <div>
@@ -265,9 +287,19 @@ const Bins = () => {
         errors={errors}
         handleChange={handleChange}
       />
+
+      <ConfirmDialog
+        open={confirmState.open}
+        message={confirmState.message}
+        confirmLabel="حذف"
+        onConfirm={() => {
+          confirmState.onConfirm?.();
+          setConfirmState({ open: false });
+        }}
+        onCancel={() => setConfirmState({ open: false })}
+      />
     </div>
   );
 };
 
 export default Bins;
-

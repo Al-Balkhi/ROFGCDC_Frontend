@@ -25,7 +25,7 @@ const UserFiltersDropdown = ({
     return () => {
       document.removeEventListener("pointerdown", handleClickOutside, true);
     };
-  }, [onClose]);   // إضافة onClose للمصفوفة لتجنب تحذيرات الـ linter
+  }, [onClose]);   
 
   const toggle = (list, setter, value) => {
     setter(

@@ -1,25 +1,30 @@
-import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useState, useEffect } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMapEvents,
+  useMap,
+} from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 // Reuse the simple icon style from MapView or similar
 const createIcon = (color) =>
   L.divIcon({
-    className: 'custom-marker',
+    className: "custom-marker",
     html: `<div style="background:${color};width:20px;height:20px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4)"></div>`,
     iconAnchor: [10, 10],
   });
 
-const markerIcon = createIcon('#2563eb'); // Blue color
+const markerIcon = createIcon("#2563eb"); // Blue color
 
 const DAMASCUS_BOUNDS = [
-  [33.40, 36.10], // south-west
-  [33.60, 36.40], // north-east
+  [33.4, 36.1], // south-west
+  [33.6, 36.4], // north-east
 ];
 
 const defaultCenter = [33.5138, 36.2765];
-
 
 function LoadMapState({ center }) {
   const map = useMap();
@@ -41,7 +46,14 @@ function LocationMarker({ position, setPosition }) {
   return position ? <Marker position={position} icon={markerIcon} /> : null;
 }
 
-const LocationPickerModal = ({ isOpen, onClose, onConfirm, initialLat, initialLng, title }) => {
+const LocationPickerModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  initialLat,
+  initialLng,
+  title,
+}) => {
   const [position, setPosition] = useState(null);
 
   useEffect(() => {
@@ -49,15 +61,9 @@ const LocationPickerModal = ({ isOpen, onClose, onConfirm, initialLat, initialLn
       if (initialLat && initialLng) {
         const lat = parseFloat(initialLat);
         const lng = parseFloat(initialLng);
-        setPosition((prev) => {
-            if (prev && prev.lat === lat && prev.lng === lng) return prev;
-            return { lat, lng };
-        });
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setPosition({ lat, lng });
       } else {
-        // Optional: Set to default center if no initial pos? 
-        // Or just let user click. Let's keep it null initially so user knows they haven't picked.
-        // Actually, centering map on default is good, but marker should be null unless they click.
-        // But if they are editing, we need to show the current one.
         setPosition(null);
       }
     }
@@ -79,16 +85,19 @@ const LocationPickerModal = ({ isOpen, onClose, onConfirm, initialLat, initialLn
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b">
           <h3 className="text-lg font-bold text-gray-800">
-            {title || 'تحديد الموقع على الخريطة'}
+            {title || "تحديد الموقع على الخريطة"}
           </h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 text-2xl"
+          >
             &times;
           </button>
         </div>
 
         {/* Map */}
         <div className="flex-1 relative">
-           <MapContainer
+          <MapContainer
             center={mapCenter}
             zoom={13}
             minZoom={11}
@@ -96,7 +105,7 @@ const LocationPickerModal = ({ isOpen, onClose, onConfirm, initialLat, initialLn
             maxBounds={DAMASCUS_BOUNDS}
             maxBoundsViscosity={1.0}
             className="w-full h-full"
-            style={{ direction: 'ltr' }}
+            style={{ direction: "ltr" }}
           >
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -105,7 +114,7 @@ const LocationPickerModal = ({ isOpen, onClose, onConfirm, initialLat, initialLn
             {position && <LoadMapState center={position} />}
             <LocationMarker position={position} setPosition={setPosition} />
           </MapContainer>
-          
+
           {/* Instructions Overlay */}
           <div className="absolute top-4 right-4 bg-white/90 p-2 rounded shadow text-sm z-[1000] pointer-events-none">
             قم بالنقر على الخريطة لتحديد الموقع

@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { authAPI, profileAPI } from '../services/api';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { authAPI, profileAPI } from "../services/api";
 
 /**
  * Helper function to standardize user object shape and sanitize data.
@@ -34,7 +34,7 @@ const useAuthStore = create(
         set({ loading: true, error: null });
         try {
           const loginResponse = await authAPI.login(email, password);
-          
+
           // Check if login response contains user data, otherwise fetch profile
           let userData = null;
           if (loginResponse?.data?.user || loginResponse?.data) {
@@ -50,7 +50,7 @@ const useAuthStore = create(
                 isAuthenticated: false,
                 user: null,
                 loading: false,
-                error: profileResult.error || 'فشل جلب بيانات المستخدم',
+                error: profileResult.error || "فشل جلب بيانات المستخدم",
               });
               return { success: false, error: profileResult.error };
             }
@@ -63,10 +63,11 @@ const useAuthStore = create(
             loading: false,
             error: null,
           });
-          
+
           return { success: true, user: sanitizedUser };
         } catch (error) {
-          const errorMessage = error.response?.data?.detail || 'فشل تسجيل الدخول';
+          const errorMessage =
+            error.response?.data?.detail || "فشل تسجيل الدخول";
           set({
             isAuthenticated: false,
             user: null,
@@ -82,7 +83,7 @@ const useAuthStore = create(
           await authAPI.logout();
         } catch (error) {
           // Continue with logout even if API call fails
-          console.error('Logout error:', error);
+          console.error("Logout error:", error);
         } finally {
           set({
             isAuthenticated: false,
@@ -99,17 +100,18 @@ const useAuthStore = create(
           const response = await profileAPI.getProfile();
           const profileData = response.data;
           const sanitizedUser = sanitizeUser(profileData);
-          
+
           set({
             isAuthenticated: true,
             user: sanitizedUser,
             loading: false,
             error: null,
           });
-          
+
           return { success: true, user: sanitizedUser };
         } catch (error) {
-          const errorMessage = error.response?.data?.detail || 'فشل جلب بيانات المستخدم';
+          const errorMessage =
+            error.response?.data?.detail || "فشل جلب بيانات المستخدم";
           set({
             isAuthenticated: false,
             user: null,
@@ -128,45 +130,39 @@ const useAuthStore = create(
       setLoading: (loading) => set({ loading }),
       setError: (error) => set({ error }),
 
+      /**
+       * Called once on app start. Attempts to restore the user session from
+       * the existing httpOnly cookie. Silently fails if no session exists —
+       * the user will be redirected to /login by ProtectedRoute.
+       *
+       * Delegates entirely to fetchProfile; the only difference is that a
+       * failed fetch is swallowed (no error shown to the user on cold start).
+       */
       initialize: async () => {
-        set({ loading: true });
-        try {
-          const response = await profileAPI.getProfile();
-          const profileData = response.data;
-          const sanitizedUser = sanitizeUser(profileData);
-          
-          set({
-            user: sanitizedUser,
-            isAuthenticated: true,
-            loading: false,
-            error: null,
-          });
-        } catch (error) {
-          set({
-            user: null,
-            isAuthenticated: false,
-            loading: false,
-            error: null,
-          });
-        }
+        await get().fetchProfile();
+        // Suppress the error from a failed cold-start fetch — it is expected
+        // when the user has no active session.
+        get().setError(null);
       },
     }),
     {
-      name: 'auth-storage',
+      name: "auth-storage",
       partialize: (state) => ({
         // Security: Only persist minimal non-sensitive data
         // Do NOT persist PII like email, phone, username, image_profile
         isAuthenticated: state.isAuthenticated,
         // Only persist id and role for routing/permission checks if absolutely necessary
-        user: state.user ? {
-          id: state.user.id,
-          role: state.user.role,
-          is_superuser: state.user.is_superuser,
-          // Note: is_active is not persisted as it should be checked on each session
-        } : null,
+        user: state.user
+          ? {
+              id: state.user.id,
+              role: state.user.role,
+              is_superuser: state.user.is_superuser,
+              // Note: is_active is not persisted as it should be checked on each session
+            }
+          : null,
       }),
-    }
-  )
+    },
+  ),
 );
 
 export default useAuthStore;

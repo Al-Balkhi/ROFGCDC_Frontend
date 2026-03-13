@@ -5,123 +5,19 @@ import PlanSideBar from "../components/PlanSideBar";
 import { useToast } from "../components/ToastContainer";
 import Pagination from "../components/Pagination";
 import useAuthStore from "../store/authStore";
+import { useSearchParams } from "react-router-dom";
 import { ROLES } from "../constants/roles";
-
-// --- مكون قائمة الفلترة (كما هو) ---
-const PlanFiltersDropdown = ({
-  filterStatus,
-  setFilterStatus,
-  municipalities,
-  selectedMunicipality,
-  setSelectedMunicipality,
-  weekDayFilter,
-  setWeekDayFilter,
-  activeTab, // Added
-  onReset,
-  onClose,
-}) => (
-  <div className="absolute top-12 left-0 w-72 bg-white border rounded-lg shadow-xl z-50 p-4 animate-fade-in-down">
-    <div className="flex justify-between items-center mb-4 border-b pb-2">
-      <h3 className="font-bold text-gray-700">تصفية الخطط</h3>
-    </div>
-
-    {/* فلتر الحالة - يظهر فقط في الخطط اليومية */}
-    {activeTab === "scenarios" && (
-      <div className="mb-4 animate-fade-in">
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
-          حالة الخطة
-        </label>
-        <div className="flex bg-gray-100 p-1 rounded-lg">
-          <button
-            onClick={() => setFilterStatus("active")}
-            className={`flex-1 py-1 text-sm rounded-md transition-all ${filterStatus === "active" ? "bg-white text-blue-600 shadow-sm font-semibold" : "text-gray-500 hover:text-gray-700"}`}
-          >
-            قيد الانجاز
-          </button>
-          <button
-            onClick={() => setFilterStatus("archived")}
-            className={`flex-1 py-1 text-sm rounded-md transition-all ${filterStatus === "archived" ? "bg-white text-blue-600 shadow-sm font-semibold" : "text-gray-500 hover:text-gray-700"}`}
-          >
-            منجزة
-          </button>
-          <button
-            onClick={() => setFilterStatus("all")}
-            className={`flex-1 py-1 text-sm rounded-md transition-all ${filterStatus === "all" ? "bg-white text-blue-600 shadow-sm font-semibold" : "text-gray-500 hover:text-gray-700"}`}
-          >
-            الكل
-          </button>
-        </div>
-      </div>
-    )}
-
-    {/* فلتر البلدية */}
-    <div className="mb-4">
-      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
-        البلدية
-      </label>
-      <select
-        value={selectedMunicipality}
-        onChange={(e) => setSelectedMunicipality(e.target.value)}
-        className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-      >
-        <option value="">كافة البلديات</option>
-        {municipalities.map((m) => (
-          <option key={m.id} value={m.id}>
-            {m.name}
-          </option>
-        ))}
-      </select>
-    </div>
-
-    {/* فلتر يوم الأسبوع */}
-    <div className="mb-4">
-      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
-        يوم الأسبوع
-      </label>
-      <select
-        value={weekDayFilter}
-        onChange={(e) => setWeekDayFilter(e.target.value)}
-        className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-      >
-        <option value="">كافة الأيام</option>
-        {[
-          "السبت",
-          "الأحد",
-          "الإثنين",
-          "الثلاثاء",
-          "الأربعاء",
-          "الخميس",
-          "الجمعة",
-        ].map((day, index) => (
-          <option key={index} value={index}>
-            {day}
-          </option>
-        ))}
-      </select>
-    </div>
-
-    <div className="flex gap-3 mt-6">
-      <button
-        onClick={onReset}
-        className="flex-1 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-      >
-        إعادة تعيين
-      </button>
-      <button
-        onClick={onClose}
-        className="flex-1 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"
-      >
-        تم
-      </button>
-    </div>
-  </div>
-);
+import { WEEKDAY_NAMES, SCENARIO_STATUS } from "../constants/labels";
+import ConfirmDialog from "../components/ConfirmDialog";
+import PlanFiltersDropdown from "../components/PlanFiltersDropdown";
 
 const normalizeList = (data) =>
   Array.isArray(data) ? data : data?.results || [];
 
 const PlannerScenarios = () => {
   const { addToast } = useToast();
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get("id");
   const user = useAuthStore((state) => state.user);
   const isPlanner = user?.role === ROLES.PLANNER;
   const isSuperuser = user?.is_superuser;
@@ -139,6 +35,9 @@ const PlannerScenarios = () => {
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState(null);
   const [errors, setErrors] = useState({});
+
+  // ConfirmDialog state
+  const [confirmState, setConfirmState] = useState({ open: false });
 
   // --- حالات الفلترة والبحث ---
   const [search, setSearch] = useState("");
@@ -195,6 +94,8 @@ const PlannerScenarios = () => {
   }, [filterRef]);
 
   // --- جلب البيانات ---
+  useAutoScroll(highlightId, activeTab === "scenarios" ? scenarios : templates);
+
   const fetchScenarios = useCallback(
     async (page = 1) => {
       setLoading(true);
@@ -454,48 +355,16 @@ const PlannerScenarios = () => {
       };
 
       if (editingPlan) {
-        // If we are editing (and it's a template we are editing), update it.
-        // Note: If the user tries to edit a 'Scenario' (historical), this might fail if we treat it as a template.
-        // But since we are removing the ability to create scenarios, we assume we are mostly managing templates now.
-        // However, existing Scenarios might still be in the list.
-        // If `editingPlan` is a Scenario (no weekdays), we essentially can't "convert" it easily without backend support?
-        // Actually, if I click "Edit" on a Scenario in the table, it opens the SideBar.
-        // If I save, it will try to hit `updateScenarioTemplate` with a Scenario ID? That will fail 404.
-        // So I need to know if I am editing a Scenario or a Template.
-        // My `openSidePanel` logic detects `isTemplate`.
-
-        if (formData.is_recurring) {
-          // It is always recurring/template now based on my PlanSideBar change?
-          // Wait, I removed the checkbox from UI, but `formData.is_recurring` state still exists.
-          // I should rely on whether the original item was a template or not?
-          // Or better, since the USER REQUEST is "Remove ability to create DAILY PLAN manually",
-          // maybe I should disable "Edit" on daily plans? Or allow editing them but only as "Scenario"?
-          // The user said "Remove ability to CREATE". Editing existing ones is ambiguous.
-          // Assuming we want to move to a Template-only workflow.
-
-          // If `activeTab` is 'scenarios', we are editing a scenario.
-          // If `activeTab` is 'templates', we are editing a template.
-
-          // For now, let's assume we are creating Templates.
-
-          await plannerAPI.updateScenarioTemplate(editingPlan.id, payload);
-          addToast("تم تحديث القالب الدوري بنجاح", "success");
-          fetchTemplates(currentPage);
-        } else {
-          // Fallback for scenarios if I restore that logic.
-          // But for now, let's assume we are working with Templates.
-          await plannerAPI.updateScenarioTemplate(editingPlan.id, payload);
-          addToast("تم تحديث القالب الدوري بنجاح", "success");
-          fetchTemplates(currentPage);
-        }
+        // Update existing template (both recurring templates and historical scenarios
+        // use the same endpoint since the workflow is now template-centric).
+        await plannerAPI.updateScenarioTemplate(editingPlan.id, payload);
+        addToast("تم تحديث القالب الدوري بنجاح", "success");
+        fetchTemplates(currentPage);
       } else {
-        // Creating NEW
+        // Create new recurring template
         await plannerAPI.createScenarioTemplate(payload);
         addToast("تم إنشاء القالب الدوري بنجاح", "success");
-        // Switch to templates tab to see it
-        if (activeTab !== "templates") {
-          setActiveTab("templates");
-        }
+        if (activeTab !== "templates") setActiveTab("templates");
         fetchTemplates(1);
       }
 
@@ -510,25 +379,27 @@ const PlannerScenarios = () => {
 
   const handleDeleteRow = useCallback(
     async (item) => {
-      if (!window.confirm(`هل أنت متأكد من الحذف النهائي؟`)) return;
-      try {
-        if (activeTab === "templates") {
-          await plannerAPI.deleteScenarioTemplate(item.id);
-          addToast("تم حذف القالب بنجاح", "success");
-          fetchTemplates(currentPage);
-        } else {
-          await plannerAPI.deleteScenario(item.id);
-          addToast("تم حذف الخطة نهائياً", "success");
-          fetchScenarios(currentPage);
-        }
-
-        if (editingPlan && editingPlan.id === item.id) {
-          closeSidePanel();
-        }
-      } catch (error) {
-        console.error(error);
-        addToast("فشل الحذف", "error");
-      }
+      setConfirmState({
+        open: true,
+        message: `هل أنت متأكد من الحذف النهائي لـ "${item.name}"?`,
+        onConfirm: async () => {
+          try {
+            if (activeTab === "templates") {
+              await plannerAPI.deleteScenarioTemplate(item.id);
+              addToast("تم حذف القالب بنجاح", "success");
+              fetchTemplates(currentPage);
+            } else {
+              await plannerAPI.deleteScenario(item.id);
+              addToast("تم حذف الخطة نهائياً", "success");
+              fetchScenarios(currentPage);
+            }
+            if (editingPlan && editingPlan.id === item.id) closeSidePanel();
+          } catch (error) {
+            console.error(error);
+            addToast("فشل الحذف", "error");
+          }
+        },
+      });
     },
     [
       addToast,
@@ -564,24 +435,7 @@ const PlannerScenarios = () => {
         key: "status",
         label: "الحالة",
         render: (_, row) => {
-          const statusMap = {
-            pending: {
-              label: "معلقة",
-              classes: "bg-yellow-100 text-yellow-700",
-            },
-            in_progress: {
-              label: "قيد الانجاز",
-              classes: "bg-blue-100 text-blue-700",
-            },
-            completed: {
-              label: "منجزة",
-              classes: "bg-green-100 text-green-700",
-            },
-          };
-          const s = statusMap[row.status] || {
-            label: row.status,
-            classes: "bg-gray-100 text-gray-700",
-          };
+          const s = SCENARIO_STATUS[row.status] ?? SCENARIO_STATUS._unknown;
           return (
             <span
               className={`px-2 py-1 rounded text-xs font-semibold ${s.classes}`}
@@ -625,23 +479,13 @@ const PlannerScenarios = () => {
       {
         key: "weekdays",
         label: "أيام التكرار",
-        render: (_, row) => {
-          const days = [
-            "السبت",
-            "الأحد",
-            "الإثنين",
-            "الثلاثاء",
-            "الأربعاء",
-            "الخميس",
-            "الجمعة",
-          ];
-          return row.weekdays
+        render: (_, row) =>
+          row.weekdays
             ? row.weekdays
                 .split(",")
-                .map((d) => days[parseInt(d)])
+                .map((d) => WEEKDAY_NAMES[parseInt(d)])
                 .join("، ")
-            : "-";
-        },
+            : "-",
       },
       {
         key: "vehicle",
@@ -808,6 +652,8 @@ const PlannerScenarios = () => {
         columns={activeTab === "scenarios" ? columns : templateColumns}
         data={activeTab === "scenarios" ? scenarios : templates}
         loading={loading}
+        highlightId={highlightId}
+        rowIdPrefix="scenario"
       />
 
       <Pagination
@@ -832,8 +678,34 @@ const PlannerScenarios = () => {
         toggleBin={toggleBin}
         onDelete={editingPlan ? () => handleDeleteRow(editingPlan) : null}
       />
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        open={confirmState.open}
+        message={confirmState.message}
+        confirmLabel="حذف"
+        onConfirm={() => {
+          confirmState.onConfirm?.();
+          setConfirmState({ open: false });
+        }}
+        onCancel={() => setConfirmState({ open: false })}
+      />
     </div>
   );
+};
+
+// Add auto-scroll effect for highlighted plans
+const useAutoScroll = (highlightId, data) => {
+  useEffect(() => {
+    if (highlightId && data.length > 0) {
+      setTimeout(() => {
+        const element = document.getElementById(`scenario-${highlightId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 500);
+    }
+  }, [highlightId, data]);
 };
 
 export default PlannerScenarios;

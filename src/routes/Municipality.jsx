@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
-import useAuthStore from '../store/authStore';
-import { municipalitiesAPI } from '../services/api';
-import Table from '../components/Table';
-import { useToast } from '../components/ToastContainer';
-import MunicipalitySidePanel from '../components/MunicipalitySidePanel';
-import Pagination from '../components/Pagination';
+import { useState, useEffect, useCallback } from "react";
+import useAuthStore from "../store/authStore";
+import { municipalitiesAPI, usersAPI } from "../services/api";
+import Table from "../components/Table";
+import { useToast } from "../components/ToastContainer";
+import MunicipalitySidePanel from "../components/MunicipalitySidePanel";
+import Pagination from "../components/Pagination";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const Municipality = () => {
   const { addToast } = useToast();
@@ -16,39 +17,62 @@ const Municipality = () => {
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [editingMunicipality, setEditingMunicipality] = useState(null);
   const [formData, setFormData] = useState({
-    name: '',
-    hq_latitude: '',
-    hq_longitude: '',
+    name: "",
+    hq_latitude: "",
+    hq_longitude: "",
+    planner_id: "",
   });
   const [errors, setErrors] = useState({});
+  const [confirmState, setConfirmState] = useState({ open: false });
+  const [planners, setPlanners] = useState([]);
 
-  const fetchMunicipalities = useCallback(async (page = 1) => {
-    setLoading(true);
-    try {
-      const params = { page };
-      const response = await municipalitiesAPI.getMunicipalities(params);
-      
-      // Handle paginated response: { results: [...], count: ... } or fallback to array
-      if (response.data?.results !== undefined) {
-        setMunicipalities(response.data.results || []);
-        setTotalCount(response.data.count || 0);
-      } else if (Array.isArray(response.data)) {
-        setMunicipalities(response.data);
-        setTotalCount(response.data.length);
-      } else {
-        setMunicipalities([]);
-        setTotalCount(0);
+  const fetchMunicipalities = useCallback(
+    async (page = 1) => {
+      setLoading(true);
+      try {
+        const params = { page };
+        const response = await municipalitiesAPI.getMunicipalities(params);
+
+        // Handle paginated response: { results: [...], count: ... } or fallback to array
+        if (response.data?.results !== undefined) {
+          setMunicipalities(response.data.results || []);
+          setTotalCount(response.data.count || 0);
+        } else if (Array.isArray(response.data)) {
+          setMunicipalities(response.data);
+          setTotalCount(response.data.length);
+        } else {
+          setMunicipalities([]);
+          setTotalCount(0);
+        }
+      } catch {
+        addToast("فشل تحميل المديريات", "error");
+      } finally {
+        setLoading(false);
       }
-    } catch {
-      addToast('فشل تحميل المديريات', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [addToast]);
+    },
+    [addToast],
+  );
 
   useEffect(() => {
     fetchMunicipalities(currentPage);
   }, [fetchMunicipalities, currentPage]);
+
+  useEffect(() => {
+    const fetchPlanners = async () => {
+      try {
+        const params = new URLSearchParams();
+        params.append("role", "planner");
+        const res = await usersAPI.getUsers(params);
+        const items = Array.isArray(res.data)
+          ? res.data
+          : res.data?.results || [];
+        setPlanners(items);
+      } catch {
+        addToast("فشل تحميل المخططين", "error");
+      }
+    };
+    fetchPlanners();
+  }, [addToast]);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -58,16 +82,18 @@ const Municipality = () => {
     if (municipality) {
       setEditingMunicipality(municipality);
       setFormData({
-        name: municipality.name || '',
-        hq_latitude: municipality.hq_latitude || '',
-        hq_longitude: municipality.hq_longitude || '',
+        name: municipality.name || "",
+        hq_latitude: municipality.hq_latitude || "",
+        hq_longitude: municipality.hq_longitude || "",
+        planner_id: municipality.planner?.id || "",
       });
     } else {
       setEditingMunicipality(null);
       setFormData({
-        name: '',
-        hq_latitude: '',
-        hq_longitude: '',
+        name: "",
+        hq_latitude: "",
+        hq_longitude: "",
+        planner_id: "",
       });
     }
     setErrors({});
@@ -78,9 +104,10 @@ const Municipality = () => {
     setSidePanelOpen(false);
     setEditingMunicipality(null);
     setFormData({
-      name: '',
-      hq_latitude: '',
-      hq_longitude: '',
+      name: "",
+      hq_latitude: "",
+      hq_longitude: "",
+      planner_id: "",
     });
     setErrors({});
   };
@@ -89,20 +116,32 @@ const Municipality = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
   const validate = () => {
     const newErrors = {};
     if (!formData.name.trim()) {
-      newErrors.name = 'الاسم مطلوب';
+      newErrors.name = "الاسم مطلوب";
     }
-    if (formData.hq_latitude && (isNaN(formData.hq_latitude) || formData.hq_latitude < 33.40 || formData.hq_latitude > 33.60)) {
-      newErrors.hq_latitude = 'خط العرض يجب أن يكون بين 33.40 و 33.60 (حدود مدينة دمشق)';
+    if (
+      formData.hq_latitude &&
+      (isNaN(formData.hq_latitude) ||
+        formData.hq_latitude < 33.4 ||
+        formData.hq_latitude > 33.6)
+    ) {
+      newErrors.hq_latitude =
+        "خط العرض يجب أن يكون بين 33.40 و 33.60 (حدود مدينة دمشق)";
     }
-    if (formData.hq_longitude && (isNaN(formData.hq_longitude) || formData.hq_longitude < 36.10 || formData.hq_longitude > 36.40)) {
-      newErrors.hq_longitude = 'خط الطول يجب أن يكون بين 36.10 و 36.40 (حدود مدينة دمشق)';
+    if (
+      formData.hq_longitude &&
+      (isNaN(formData.hq_longitude) ||
+        formData.hq_longitude < 36.1 ||
+        formData.hq_longitude > 36.4)
+    ) {
+      newErrors.hq_longitude =
+        "خط الطول يجب أن يكون بين 36.10 و 36.40 (حدود مدينة دمشق)";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -125,71 +164,83 @@ const Municipality = () => {
         submitData.hq_longitude = parseFloat(formData.hq_longitude);
       }
 
+      submitData.planner_id = formData.planner_id
+        ? parseInt(formData.planner_id, 10)
+        : null;
+
       if (editingMunicipality) {
-        await municipalitiesAPI.updateMunicipality(editingMunicipality.id, submitData);
-        addToast('تم تحديث المديرية بنجاح', 'success');
+        await municipalitiesAPI.updateMunicipality(
+          editingMunicipality.id,
+          submitData,
+        );
+        addToast("تم تحديث المديرية بنجاح", "success");
       } else {
         await municipalitiesAPI.createMunicipality(submitData);
-        addToast('تم إنشاء المديرية بنجاح', 'success');
+        addToast("تم إنشاء المديرية بنجاح", "success");
       }
       closeSidePanel();
       fetchMunicipalities(currentPage);
     } catch (error) {
       const errorData = error.response?.data || {};
       setErrors(errorData);
-      addToast('فشل العملية', 'error');
+      addToast("فشل العملية", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('هل أنت متأكد من حذف هذه المديرية؟')) return;
-    try {
-      await municipalitiesAPI.deleteMunicipality(id);
-      addToast('تم حذف المديرية بنجاح', 'success');
-      fetchMunicipalities(currentPage);
-    } catch {
-      addToast('فشل حذف المديرية', 'error');
-    }
+  const handleDelete = (id) => {
+    setConfirmState({
+      open: true,
+      message: "هل أنت متأكد من حذف هذه المديرية؟",
+      onConfirm: async () => {
+        try {
+          await municipalitiesAPI.deleteMunicipality(id);
+          addToast("تم حذف المديرية بنجاح", "success");
+          fetchMunicipalities(currentPage);
+        } catch {
+          addToast("فشل حذف المديرية", "error");
+        }
+      },
+    });
   };
 
   const currentUser = useAuthStore((state) => state.user);
 
   const columns = [
-    { key: 'name', label: 'الاسم' },
-    { key: 'hq_latitude', label: 'خط العرض' },
-    { key: 'hq_longitude', label: 'خط الطول' },
+    { key: "name", label: "الاسم" },
+    { key: "hq_latitude", label: "خط العرض" },
+    { key: "hq_longitude", label: "خط الطول" },
   ];
 
   if (currentUser?.is_superuser) {
     columns.push({
-      key: 'created_by',
-      label: 'تم الإنشاء بواسطة',
-      render: (_, row) => row.created_by || '—',
+      key: "created_by",
+      label: "تم الإنشاء بواسطة",
+      render: (_, row) => row.created_by || "—",
     });
   }
 
   columns.push({
-      key: 'actions',
-      label: 'الإجراءات',
-      render: (_, row) => (
-        <div className="flex gap-2">
-          <button
-            onClick={() => openSidePanel(row)}
-            className="text-blue-600 hover:text-blue-800 text-sm"
-          >
-            تعديل
-          </button>
-          <button
-            onClick={() => handleDelete(row.id)}
-            className="text-red-600 hover:text-red-800 text-sm"
-          >
-            حذف
-          </button>
-        </div>
-      ),
-    });
+    key: "actions",
+    label: "الإجراءات",
+    render: (_, row) => (
+      <div className="flex gap-2">
+        <button
+          onClick={() => openSidePanel(row)}
+          className="text-blue-600 hover:text-blue-800 text-sm"
+        >
+          تعديل
+        </button>
+        <button
+          onClick={() => handleDelete(row.id)}
+          className="text-red-600 hover:text-red-800 text-sm"
+        >
+          حذف
+        </button>
+      </div>
+    ),
+  });
 
   return (
     <div>
@@ -221,10 +272,21 @@ const Municipality = () => {
         formData={formData}
         errors={errors}
         handleChange={handleChange}
+        planners={planners}
+      />
+
+      <ConfirmDialog
+        open={confirmState.open}
+        message={confirmState.message}
+        confirmLabel="حذف"
+        onConfirm={() => {
+          confirmState.onConfirm?.();
+          setConfirmState({ open: false });
+        }}
+        onCancel={() => setConfirmState({ open: false })}
       />
     </div>
   );
 };
 
 export default Municipality;
-

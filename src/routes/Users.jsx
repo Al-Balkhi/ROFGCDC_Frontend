@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
-import useAuthStore from '../store/authStore';
-import { usersAPI } from '../services/api';
-import Table from '../components/Table';
-import { useToast } from '../components/ToastContainer';
-import UserFiltersDropdown from '../components/UserFiltersDropdown';
-import UserSidePanel from '../components/UserSidePanel';
+import { useState, useEffect, useCallback } from "react";
+import useAuthStore from "../store/authStore";
+import { usersAPI } from "../services/api";
+import Table from "../components/Table";
+import { useToast } from "../components/ToastContainer";
+import UserFiltersDropdown from "../components/UserFiltersDropdown";
+import UserSidePanel from "../components/UserSidePanel";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const Users = () => {
   const { addToast } = useToast();
@@ -15,8 +16,8 @@ const Users = () => {
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
 
   const [selectedRoles, setSelectedRoles] = useState([]);
@@ -24,14 +25,15 @@ const Users = () => {
   const [selectedArchived, setSelectedArchived] = useState([]);
 
   const [formData, setFormData] = useState({
-    email: '',
-    username: '',
-    role: 'driver',
-    phone: '',
+    email: "",
+    username: "",
+    role: "driver",
+    phone: "",
     image_profile: null,
   });
 
   const [errors, setErrors] = useState({});
+  const [confirmState, setConfirmState] = useState({ open: false });
 
   const DEBOUNCE_DELAY = 200;
 
@@ -57,22 +59,28 @@ const Users = () => {
       const params = new URLSearchParams();
 
       if (debouncedSearch) {
-        params.append('search', debouncedSearch);
+        params.append("search", debouncedSearch);
       }
-      
-      selectedRoles.forEach((r) => params.append('role', r));
-      selectedStates.forEach((s) => params.append('is_active', s));
-      selectedArchived.forEach((a) => params.append('is_archived', a));
+
+      selectedRoles.forEach((r) => params.append("role", r));
+      selectedStates.forEach((s) => params.append("is_active", s));
+      selectedArchived.forEach((a) => params.append("is_archived", a));
 
       const res = await usersAPI.getUsers(params);
 
       setUsers(Array.isArray(res.data) ? res.data : res.data?.results || []);
     } catch {
-      addToast('فشل تحميل المستخدمين', 'error');
+      addToast("فشل تحميل المستخدمين", "error");
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, selectedRoles, selectedStates, selectedArchived, addToast]);
+  }, [
+    debouncedSearch,
+    selectedRoles,
+    selectedStates,
+    selectedArchived,
+    addToast,
+  ]);
 
   useEffect(() => {
     fetchUsers();
@@ -82,19 +90,19 @@ const Users = () => {
     if (user) {
       setEditingUser(user);
       setFormData({
-        email: user.email || '',
-        username: user.username || '',
-        role: user.role || 'driver',
-        phone: user.phone || '',
+        email: user.email || "",
+        username: user.username || "",
+        role: user.role || "driver",
+        phone: user.phone || "",
         image_profile: user.image_profile || null,
       });
     } else {
       setEditingUser(null);
       setFormData({
-        email: '',
-        username: '',
-        role: 'driver',
-        phone: '',
+        email: "",
+        username: "",
+        role: "driver",
+        phone: "",
         image_profile: null,
       });
     }
@@ -107,10 +115,10 @@ const Users = () => {
     setSidePanelOpen(false);
     setEditingUser(null);
     setFormData({
-      email: '',
-      username: '',
-      role: 'driver',
-      phone: '',
+      email: "",
+      username: "",
+      role: "driver",
+      phone: "",
       image_profile: null,
     });
     setErrors({});
@@ -120,7 +128,7 @@ const Users = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
@@ -130,8 +138,9 @@ const Users = () => {
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.email && !editingUser) newErrors.email = 'البريد الإلكتروني مطلوب';
-    if (!formData.username) newErrors.username = 'اسم المستخدم مطلوب';
+    if (!formData.email && !editingUser)
+      newErrors.email = "البريد الإلكتروني مطلوب";
+    if (!formData.username) newErrors.username = "اسم المستخدم مطلوب";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -145,79 +154,85 @@ const Users = () => {
     try {
       const submitData = new FormData();
 
-      if (!editingUser) submitData.append('email', formData.email);
-      submitData.append('username', formData.username);
-      submitData.append('role', formData.role);
-      submitData.append('phone', formData.phone);
+      if (!editingUser) submitData.append("email", formData.email);
+      submitData.append("username", formData.username);
+      submitData.append("role", formData.role);
+      submitData.append("phone", formData.phone);
 
       if (formData.image_profile instanceof File) {
-        submitData.append('image_profile', formData.image_profile);
+        submitData.append("image_profile", formData.image_profile);
       }
 
       if (editingUser) {
         await usersAPI.updateUser(editingUser.id, submitData);
-        addToast('تم تحديث المستخدم بنجاح', 'success');
+        addToast("تم تحديث المستخدم بنجاح", "success");
       } else {
         await usersAPI.createUser(submitData);
-        addToast('تم إنشاء المستخدم بنجاح', 'success');
+        addToast("تم إنشاء المستخدم بنجاح", "success");
       }
 
       closeSidePanel();
       fetchUsers();
     } catch (error) {
       setErrors(error.response?.data || {});
-      addToast('فشلت العملية', 'error');
+      addToast("فشلت العملية", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleArchive = async (id) => {
-    if (!window.confirm('هل أنت متأكد من أرشفة هذا المستخدم؟')) return;
-    try {
-      await usersAPI.archiveUser(id);
-      addToast('تم أرشفة المستخدم', 'success');
-      fetchUsers();
-    } catch {
-      addToast('فشل أرشفة المستخدم', 'error');
-    }
+  const handleArchive = (id) => {
+    setConfirmState({
+      open: true,
+      message: "هل أنت متأكد من أرشفة هذا المستخدم؟",
+      confirmLabel: "أرشفة",
+      onConfirm: async () => {
+        try {
+          await usersAPI.archiveUser(id);
+          addToast("تم أرشفة المستخدم", "success");
+          fetchUsers();
+        } catch {
+          addToast("فشل أرشفة المستخدم", "error");
+        }
+      },
+    });
   };
 
   const handleRestore = async (id) => {
     try {
       await usersAPI.restoreUser(id);
-      addToast('تم استعادة المستخدم', 'success');
+      addToast("تم استعادة المستخدم", "success");
       fetchUsers();
     } catch {
-      addToast('فشل الاستعادة', 'error');
+      addToast("فشل الاستعادة", "error");
     }
   };
 
   const getRoleLabel = (role) => {
-    const labels = { admin: 'مدير', planner: 'مخطط', driver: 'سائق' };
+    const labels = { admin: "مدير", planner: "مخطط", driver: "سائق" };
     return labels[role] || role;
   };
 
   const currentUser = useAuthStore((state) => state.user);
 
   const columns = [
-    { key: 'username', label: 'اسم المستخدم' },
-    { key: 'email', label: 'البريد الإلكتروني' },
+    { key: "username", label: "اسم المستخدم" },
+    { key: "email", label: "البريد الإلكتروني" },
     {
-      key: 'role',
-      label: 'الدور',
+      key: "role",
+      label: "الدور",
       render: (value) => getRoleLabel(value),
     },
     {
-      key: 'is_active',
-      label: 'الحالة',
+      key: "is_active",
+      label: "الحالة",
       render: (value) => (
         <span
           className={`px-2 py-1 rounded text-xs ${
-            value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            value ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
           }`}
         >
-          {value ? 'نشط' : 'غير نشط'}
+          {value ? "نشط" : "غير نشط"}
         </span>
       ),
     },
@@ -225,42 +240,42 @@ const Users = () => {
 
   if (currentUser?.is_superuser) {
     columns.push({
-      key: 'created_by',
-      label: 'تم الإنشاء بواسطة',
-      render: (_, row) => row.created_by || '—',
+      key: "created_by",
+      label: "تم الإنشاء بواسطة",
+      render: (_, row) => row.created_by || "—",
     });
   }
 
   columns.push({
-      key: 'actions',
-      label: 'الإجراءات',
-      render: (_, row) => (
-        <div className="flex gap-2">
-          <button
-            className="text-blue-600 hover:text-blue-800 text-sm"
-            onClick={() => openSidePanel(row)}
-          >
-            تعديل
-          </button>
+    key: "actions",
+    label: "الإجراءات",
+    render: (_, row) => (
+      <div className="flex gap-2">
+        <button
+          className="text-blue-600 hover:text-blue-800 text-sm"
+          onClick={() => openSidePanel(row)}
+        >
+          تعديل
+        </button>
 
-          {row.is_archived ? (
-            <button
-              className="text-green-600 hover:text-green-800 text-sm"
-              onClick={() => handleRestore(row.id)}
-            >
-              استعادة
-            </button>
-          ) : (
-            <button
-              className="text-yellow-600 hover:text-yellow-800 text-sm"
-              onClick={() => handleArchive(row.id)}
-            >
-              أرشفة
-            </button>
-          )}
-        </div>
-      ),
-    });
+        {row.is_archived ? (
+          <button
+            className="text-green-600 hover:text-green-800 text-sm"
+            onClick={() => handleRestore(row.id)}
+          >
+            استعادة
+          </button>
+        ) : (
+          <button
+            className="text-yellow-600 hover:text-yellow-800 text-sm"
+            onClick={() => handleArchive(row.id)}
+          >
+            أرشفة
+          </button>
+        )}
+      </div>
+    ),
+  });
 
   return (
     <div>
@@ -290,8 +305,8 @@ const Users = () => {
             onClick={() => setShowFilters(!showFilters)}
             className={`px-4 py-2 border rounded-lg flex items-center gap-2 transition-all ${
               hasActiveUserFilters
-                ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm'
-                : 'bg-white hover:bg-gray-50'
+                ? "bg-blue-50 border-blue-200 text-blue-700 shadow-sm"
+                : "bg-white hover:bg-gray-50"
             }`}
           >
             فلترة
@@ -333,6 +348,17 @@ const Users = () => {
         errors={errors}
         handleChange={handleChange}
         handleImageChange={handleImageChange}
+      />
+
+      <ConfirmDialog
+        open={confirmState.open}
+        message={confirmState.message}
+        confirmLabel={confirmState.confirmLabel ?? "تأكيد"}
+        onConfirm={() => {
+          confirmState.onConfirm?.();
+          setConfirmState({ open: false });
+        }}
+        onCancel={() => setConfirmState({ open: false })}
       />
     </div>
   );

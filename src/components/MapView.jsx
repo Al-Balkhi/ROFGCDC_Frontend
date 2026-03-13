@@ -1,47 +1,56 @@
-import { useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
-import L from 'leaflet';
-import { useNavigate } from 'react-router-dom';
-import 'leaflet/dist/leaflet.css';
+import { useEffect, useMemo, useState } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Polyline,
+} from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
-import { mapAPI } from '../services/api';
+import { binsAPI, landfillsAPI, municipalitiesAPI } from "../services/api";
 
 const DAMASCUS_BOUNDS = [
-  [33.40, 36.10], // south-west
-  [33.60, 36.40], // north-east
+  [33.4, 36.1], // south-west
+  [33.6, 36.4], // north-east
 ];
 
 const defaultCenter = [33.5138, 36.2765]; // Damascus fallback
 
 const createIcon = (color) =>
   L.divIcon({
-    className: 'custom-marker',
+    className: "custom-marker",
     html: `<div style="background:${color};width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4)"></div>`,
     iconAnchor: [8, 8],
   });
 
 const icons = {
-  bin: createIcon('#16a34a'),
-  vehicle: createIcon('#2563eb'),
-  landfill: createIcon('#b45309'),
-  municipality: createIcon('#dc2626'),
+  bin: createIcon("#16a34a"),
+  vehicle: createIcon("#2563eb"),
+  landfill: createIcon("#b45309"),
+  municipality: createIcon("#dc2626"),
 };
 
 // --- دالة لفك تشفير Polyline القادم من OSRM ---
 const decodePolyline = (encoded) => {
   if (!encoded) return [];
   const poly = [];
-  let index = 0, len = encoded.length;
-  let lat = 0, lng = 0;
+  let index = 0,
+    len = encoded.length;
+  let lat = 0,
+    lng = 0;
 
   while (index < len) {
-    let b, shift = 0, result = 0;
+    let b,
+      shift = 0,
+      result = 0;
     do {
       b = encoded.charCodeAt(index++) - 63;
       result |= (b & 0x1f) << shift;
       shift += 5;
     } while (b >= 0x20);
-    const dlat = (result & 1) !== 0 ? ~(result >> 1) : (result >> 1);
+    const dlat = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
     lat += dlat;
 
     shift = 0;
@@ -51,7 +60,7 @@ const decodePolyline = (encoded) => {
       result |= (b & 0x1f) << shift;
       shift += 5;
     } while (b >= 0x20);
-    const dlng = (result & 1) !== 0 ? ~(result >> 1) : (result >> 1);
+    const dlng = (result & 1) !== 0 ? ~(result >> 1) : result >> 1;
     lng += dlng;
 
     poly.push([lat / 1e5, lng / 1e5]);
@@ -60,12 +69,11 @@ const decodePolyline = (encoded) => {
 };
 
 const MapView = ({ routes = [] }) => {
-  const navigate = useNavigate();
   const [bins, setBins] = useState([]);
   const [landfills, setLandfills] = useState([]);
   const [municipalities, setMunicipalities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const [showBins, setShowBins] = useState(true);
   const [showLandfills, setShowLandfills] = useState(true);
@@ -75,20 +83,22 @@ const MapView = ({ routes = [] }) => {
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
-      setError('');
+      setError("");
       try {
         const params = { map_view: true };
         const [binsRes, landfillsRes, municipalitiesRes] = await Promise.all([
-          mapAPI.getBins(params),
-          mapAPI.getLandfills(params),
-          mapAPI.getMunicipalities(params),
+          binsAPI.getBins(params),
+          landfillsAPI.getLandfills(params),
+          municipalitiesAPI.getMunicipalities(params),
         ]);
 
         setBins(binsRes.data.results || binsRes.data || []);
         setLandfills(landfillsRes.data.results || landfillsRes.data || []);
-        setMunicipalities(municipalitiesRes.data.results || municipalitiesRes.data || []);
+        setMunicipalities(
+          municipalitiesRes.data.results || municipalitiesRes.data || [],
+        );
       } catch {
-        setError('فشل تحميل بيانات الخريطة');
+        setError("فشل تحميل بيانات الخريطة");
       } finally {
         setLoading(false);
       }
@@ -99,10 +109,12 @@ const MapView = ({ routes = [] }) => {
 
   const center = useMemo(() => {
     if (routes && routes.length > 0 && routes[0].geometry) {
-        const points = decodePolyline(routes[0].geometry);
-        if (points.length > 0) return points[0];
+      const points = decodePolyline(routes[0].geometry);
+      if (points.length > 0) return points[0];
     }
-    const muniWithHQ = municipalities.find((m) => m.hq_latitude && m.hq_longitude);
+    const muniWithHQ = municipalities.find(
+      (m) => m.hq_latitude && m.hq_longitude,
+    );
     if (muniWithHQ) return [muniWithHQ.hq_latitude, muniWithHQ.hq_longitude];
     return defaultCenter;
   }, [municipalities, routes]);
@@ -112,7 +124,11 @@ const MapView = ({ routes = [] }) => {
       <div className="flex items-center gap-4 p-4 border-b flex-shrink-0 flex-wrap">
         <span className="font-semibold text-gray-800">الفلترة حسب: </span>
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={showBins} onChange={(e) => setShowBins(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={showBins}
+            onChange={(e) => setShowBins(e.target.checked)}
+          />
           حاوية
         </label>
 
@@ -134,17 +150,19 @@ const MapView = ({ routes = [] }) => {
         </label>
         {/* إضافة زر لتبديل عرض المسارات إذا وجدت */}
         {routes && routes.length > 0 && (
-            <label className="flex items-center gap-2 text-sm text-blue-700 font-bold">
+          <label className="flex items-center gap-2 text-sm text-blue-700 font-bold">
             <input
-                type="checkbox"
-                checked={showRoutes}
-                onChange={(e) => setShowRoutes(e.target.checked)}
+              type="checkbox"
+              checked={showRoutes}
+              onChange={(e) => setShowRoutes(e.target.checked)}
             />
             المسارات المحسنة
-            </label>
+          </label>
         )}
 
-        {loading && <span className="text-sm text-gray-500">جاري التحميل...</span>}
+        {loading && (
+          <span className="text-sm text-gray-500">جاري التحميل...</span>
+        )}
         {error && <span className="text-sm text-red-600">{error}</span>}
       </div>
 
@@ -157,101 +175,103 @@ const MapView = ({ routes = [] }) => {
           maxBounds={DAMASCUS_BOUNDS}
           maxBoundsViscosity={1.0}
           className="w-full h-full"
-          style={{ direction: 'ltr' }}
+          style={{ direction: "ltr" }}
         >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap contributors"
-        />
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="&copy; OpenStreetMap contributors"
+          />
 
-        {/* --- رسم المسارات --- */}
-        {showRoutes && routes.map((route, idx) => {
-            if (!route.geometry) return null;
-            const positions = decodePolyline(route.geometry);
-            return (
-                <Polyline 
-                    key={`route-${idx}`} 
-                    positions={positions} 
-                    pathOptions={{ color: 'blue', weight: 4, opacity: 0.7 }} 
+          {/* --- رسم المسارات --- */}
+          {showRoutes &&
+            routes.map((route, idx) => {
+              if (!route.geometry) return null;
+              const positions = decodePolyline(route.geometry);
+              return (
+                <Polyline
+                  key={`route-${idx}`}
+                  positions={positions}
+                  pathOptions={{ color: "blue", weight: 4, opacity: 0.7 }}
                 >
-                     <Popup>
-                        مسار المركبة: {route.vehicle || 'غير محدد'}
-                     </Popup>
+                  <Popup>مسار المركبة: {route.vehicle || "غير محدد"}</Popup>
                 </Polyline>
-            );
-        })}
+              );
+            })}
 
-        {showBins &&
-          bins
-            .filter((b) => b.latitude && b.longitude)
-            .map((bin) => (
-              <Marker key={`bin-${bin.id}`} position={[bin.latitude, bin.longitude]} icon={icons.bin}>
-                <Popup>
-                  <div className="text-right space-y-1">
-                    <p className="font-semibold">الحاوية: {bin.name}</p>
-                    <p className="text-sm text-gray-700">السعة: {bin.capacity}</p>
-                    <p className="text-xs text-gray-500">
-                      ({bin.latitude}, {bin.longitude})
-                    </p>
-                    <button
-                      className="mt-2 text-blue-600 text-sm underline"
-                      onClick={() => navigate(`/dashboard/admin/bins/${bin.id}`)}
-                    >
-                      تعديل
-                    </button>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-
-
-
-        {showLandfills &&
-          landfills
-            .filter((l) => l.latitude && l.longitude)
-            .map((landfill) => (
-              <Marker
-                key={`landfill-${landfill.id}`}
-                position={[landfill.latitude, landfill.longitude]}
-                icon={icons.landfill}
-              >
-                <Popup>
-                  <div className="text-right space-y-1">
-                    <p className="font-semibold">المدفن: {landfill.name}</p>
-                    <p className="text-sm text-gray-700">{landfill.description}</p>
-                    <p className="text-xs text-gray-500">
-                      ({landfill.latitude}, {landfill.longitude})
-                    </p>
-                    {landfill.municipalities?.length > 0 && (
-                      <p className="text-xs text-gray-600">
-                        البلديات: {landfill.municipalities.map((m) => m.name).join('، ')}
+          {showBins &&
+            bins
+              .filter((b) => b.latitude && b.longitude)
+              .map((bin) => (
+                <Marker
+                  key={`bin-${bin.id}`}
+                  position={[bin.latitude, bin.longitude]}
+                  icon={icons.bin}
+                >
+                  <Popup>
+                    <div className="text-right space-y-1">
+                      <p className="font-semibold">الحاوية: {bin.name}</p>
+                      <p className="text-sm text-gray-700">
+                        السعة: {bin.capacity}
                       </p>
-                    )}
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+                      <p className="text-xs text-gray-500">
+                        ({bin.latitude}, {bin.longitude})
+                      </p>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
 
-        {showMunicipality &&
-          municipalities
-            .filter((m) => m.hq_latitude && m.hq_longitude)
-            .map((m) => (
-              <Marker
-                key={`muni-${m.id}`}
-                position={[m.hq_latitude, m.hq_longitude]}
-                icon={icons.municipality}
-              >
-                <Popup>
-                  <div className="text-right space-y-1">
-                    <p className="font-semibold">البلدية: {m.name}</p>
-                    <p className="text-sm text-gray-700">{m.description}</p>
-                    <p className="text-xs text-gray-500">
-                      ({m.hq_latitude}, {m.hq_longitude})
-                    </p>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+          {showLandfills &&
+            landfills
+              .filter((l) => l.latitude && l.longitude)
+              .map((landfill) => (
+                <Marker
+                  key={`landfill-${landfill.id}`}
+                  position={[landfill.latitude, landfill.longitude]}
+                  icon={icons.landfill}
+                >
+                  <Popup>
+                    <div className="text-right space-y-1">
+                      <p className="font-semibold">المدفن: {landfill.name}</p>
+                      <p className="text-sm text-gray-700">
+                        {landfill.description}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        ({landfill.latitude}, {landfill.longitude})
+                      </p>
+                      {landfill.municipalities?.length > 0 && (
+                        <p className="text-xs text-gray-600">
+                          البلديات:{" "}
+                          {landfill.municipalities
+                            .map((m) => m.name)
+                            .join("، ")}
+                        </p>
+                      )}
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
+
+          {showMunicipality &&
+            municipalities
+              .filter((m) => m.hq_latitude && m.hq_longitude)
+              .map((m) => (
+                <Marker
+                  key={`muni-${m.id}`}
+                  position={[m.hq_latitude, m.hq_longitude]}
+                  icon={icons.municipality}
+                >
+                  <Popup>
+                    <div className="text-right space-y-1">
+                      <p className="font-semibold">البلدية: {m.name}</p>
+                      <p className="text-sm text-gray-700">{m.description}</p>
+                      <p className="text-xs text-gray-500">
+                        ({m.hq_latitude}, {m.hq_longitude})
+                      </p>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
         </MapContainer>
       </div>
     </div>

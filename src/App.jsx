@@ -1,32 +1,38 @@
-import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import ProtectedRoute from './components/ProtectedRoute';
-import { ToastProvider } from './components/ToastContainer';
-import PageLoader from './components/PageLoader';
-import { ROLES } from './constants/roles';
-import { useEffect } from 'react';
-import { initCSRF } from './services/api';
+import { Suspense, lazy } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { ToastProvider } from "./components/ToastContainer";
+import PageLoader from "./components/PageLoader";
+import { ROLES } from "./constants/roles";
+import { useEffect } from "react";
+import { initCSRF } from "./services/api";
 
 // Layout components - keep as eager imports for better initial load
-import AdminDashboardLayout from './layouts/AdminDashboardLayout';
-import PlannerDashboardLayout from './layouts/PlannerDashboardLayout';
+import AdminDashboardLayout from "./layouts/AdminDashboardLayout";
+import PlannerDashboardLayout from "./layouts/PlannerDashboardLayout";
+import SharedDashboardLayout from "./layouts/SharedDashboardLayout";
 
 // Lazy load all route components for code splitting
-const Login = lazy(() => import('./routes/Login'));
-const Activate = lazy(() => import('./routes/Activate'));
-const ForgotPassword = lazy(() => import('./routes/ForgotPassword'));
-const ResetPassword = lazy(() => import('./routes/ResetPassword'));
-const AdminDashboard = lazy(() => import('./routes/AdminDashboard'));
-const PlannerDashboard = lazy(() => import('./routes/PlannerDashboard'));
-const Profile = lazy(() => import('./routes/Profile'));
-const Users = lazy(() => import('./routes/Users'));
-const Bins = lazy(() => import('./routes/Bins'));
-const Vehicles = lazy(() => import('./routes/Vehicles'));
-const ActivityLog = lazy(() => import('./routes/ActivityLog'));
-const Municipality = lazy(() => import('./routes/Municipality'));
-const Landfill = lazy(() => import('./routes/Landfill'));
-const PlannerScenarios = lazy(() => import('./routes/PlannerScenarios'));
-const PlannerSolutions = lazy(() => import('./routes/PlannerSolutions'));
+const Login = lazy(() => import("./routes/Login"));
+const Activate = lazy(() => import("./routes/Activate"));
+const ForgotPassword = lazy(() => import("./routes/ForgotPassword"));
+const ResetPassword = lazy(() => import("./routes/ResetPassword"));
+const AdminDashboard = lazy(() => import("./routes/AdminDashboard"));
+const PlannerDashboard = lazy(() => import("./routes/PlannerDashboard"));
+const Profile = lazy(() => import("./routes/Profile"));
+const Users = lazy(() => import("./routes/Users"));
+const Bins = lazy(() => import("./routes/Bins"));
+const Vehicles = lazy(() => import("./routes/Vehicles"));
+const ActivityLog = lazy(() => import("./routes/ActivityLog"));
+const Municipality = lazy(() => import("./routes/Municipality"));
+const Landfill = lazy(() => import("./routes/Landfill"));
+const PlannerScenarios = lazy(() => import("./routes/PlannerScenarios"));
+const PlannerSolutions = lazy(() => import("./routes/PlannerSolutions"));
+const CitizenReports = lazy(() => import("./routes/CitizenReports"));
+const AdminBinRequests = lazy(() => import("./routes/AdminBinRequests"));
+const NotificationsHistory = lazy(
+  () => import("./routes/NotificationsHistory"),
+);
 
 function App() {
   useEffect(() => {
@@ -57,6 +63,7 @@ function App() {
               <Route path="municipalities" element={<Municipality />} />
               <Route path="landfills" element={<Landfill />} />
               <Route path="bins" element={<Bins />} />
+              <Route path="bin-requests" element={<AdminBinRequests />} />
               <Route path="vehicles" element={<Vehicles />} />
               <Route path="activity-log" element={<ActivityLog />} />
               <Route path="scenarios" element={<PlannerScenarios />} />
@@ -72,20 +79,27 @@ function App() {
               }
             >
               <Route index element={<PlannerDashboard />} />
+              <Route path="citizen-reports" element={<CitizenReports />} />
               <Route path="scenarios" element={<PlannerScenarios />} />
               <Route path="solutions" element={<PlannerSolutions />} />
-              <Route path="solutions/:solutionId" element={<PlannerSolutions />} />
+              <Route
+                path="solutions/:solutionId"
+                element={<PlannerSolutions />}
+              />
             </Route>
 
-            {/* Protected routes - All authenticated users */}
+            {/* Protected routes - All authenticated users (shared layout) */}
             <Route
-              path="/profile"
+              path="/"
               element={
                 <ProtectedRoute>
-                  <Profile />
+                  <SharedDashboardLayout />
                 </ProtectedRoute>
               }
-            />
+            >
+              <Route path="profile" element={<Profile />} />
+              <Route path="notifications" element={<NotificationsHistory />} />
+            </Route>
 
             {/* Default redirect */}
             <Route path="/" element={<Navigate to="/login" replace />} />

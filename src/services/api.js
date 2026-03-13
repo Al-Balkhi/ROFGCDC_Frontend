@@ -1,13 +1,11 @@
-import axios from 'axios';
-
-// Create axios instance with base URL from environment variable
-const baseURL = import.meta.env.VITE_BASE_API_URL || 'http://localhost:8000';
+import axios from "axios";
+import { BASE_API_URL } from "../constants/labels";
 
 const api = axios.create({
-  baseURL: `${baseURL}/api`,
+  baseURL: `${BASE_API_URL}/api`,
   withCredentials: true,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -37,10 +35,10 @@ const processQueue = (error) => {
  * Django sets csrftoken cookie, Rails uses _csrf_token.
  */
 const getCsrfToken = () => {
-  const cookies = document.cookie.split(';');
+  const cookies = document.cookie.split(";");
   for (let cookie of cookies) {
-    const [name, value] = cookie.trim().split('=');
-    if (name === 'csrftoken' || name === '_csrf_token') {
+    const [name, value] = cookie.trim().split("=");
+    if (name === "csrftoken" || name === "_csrf_token") {
       return value;
     }
   }
@@ -53,11 +51,11 @@ api.interceptors.request.use(
     // Add CSRF token to headers for Django/Rails CSRF protection
     const csrfToken = getCsrfToken();
     if (csrfToken) {
-      config.headers['X-CSRFToken'] = csrfToken;
+      config.headers["X-CSRFToken"] = csrfToken;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Response interceptor for error handling and auto-refresh
@@ -70,7 +68,7 @@ api.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url?.includes('/auth/refresh/')
+      !originalRequest.url?.includes("/auth/refresh/")
     ) {
       if (isRefreshing) {
         // If already refreshing, queue this request
@@ -86,7 +84,7 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await api.post('/auth/refresh/');
+        await api.post("/auth/refresh/");
         processQueue(null);
         return api(originalRequest);
       } catch (refreshError) {
@@ -98,7 +96,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 // ================== Helper Functions ==================
@@ -110,7 +108,7 @@ const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
 /**
  * Helper function to get plural form of a resource.
- * 
+ *
  * Note: This is a simple implementation. For production apps with many
  * irregular plurals, consider using a library like 'pluralize':
  *   npm install pluralize
@@ -119,7 +117,7 @@ const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
  */
 const getPlural = (resource) => {
   const pluralMap = {
-    municipality: 'municipalities',
+    municipality: "municipalities",
     // Add other irregular plurals here as needed
   };
   return pluralMap[resource] || `${resource}s`;
@@ -133,35 +131,38 @@ const createCRUDEndpoints = (resource) => {
   return {
     [`get${capitalize(resourcePlural)}`]: (params) =>
       api.get(`/${resourcePlural}/`, { params }),
-    [`get${capitalize(resource)}`]: (id) => api.get(`/${resourcePlural}/${id}/`),
-    [`create${capitalize(resource)}`]: (data) => api.post(`/${resourcePlural}/`, data),
+    [`get${capitalize(resource)}`]: (id) =>
+      api.get(`/${resourcePlural}/${id}/`),
+    [`create${capitalize(resource)}`]: (data) =>
+      api.post(`/${resourcePlural}/`, data),
     [`update${capitalize(resource)}`]: (id, data) =>
       api.patch(`/${resourcePlural}/${id}/`, data),
-    [`delete${capitalize(resource)}`]: (id) => api.delete(`/${resourcePlural}/${id}/`),
+    [`delete${capitalize(resource)}`]: (id) =>
+      api.delete(`/${resourcePlural}/${id}/`),
   };
 };
 
 // ================== APIs ==================
 
-export const initCSRF = () => api.get('/csrf/');
+export const initCSRF = () => api.get("/csrf/");
 
 export const authAPI = {
-  login: (email, password) => api.post('/auth/login/', { email, password }),
-  logout: () => api.post('/auth/logout/'),
-  refreshToken: () => api.post('/auth/refresh/'),
+  login: (email, password) => api.post("/auth/login/", { email, password }),
+  logout: () => api.post("/auth/logout/"),
+  refreshToken: () => api.post("/auth/refresh/"),
   requestInitialSetupOTP: (email) =>
-    api.post('/auth/initial-setup/request-otp/', { email }),
+    api.post("/auth/initial-setup/request-otp/", { email }),
   confirmInitialSetup: (email, otp, password, confirmPassword) =>
-    api.post('/auth/initial-setup/confirm/', {
+    api.post("/auth/initial-setup/confirm/", {
       email,
       otp,
       password,
       confirm_password: confirmPassword, // Backend expects snake_case
     }),
   requestPasswordReset: (email) =>
-    api.post('/auth/password/reset/request/', { email }),
+    api.post("/auth/password/reset/request/", { email }),
   confirmPasswordReset: (email, otp, newPassword) =>
-    api.post('/auth/password/reset/confirm/', {
+    api.post("/auth/password/reset/confirm/", {
       email,
       otp,
       new_password: newPassword, // Backend expects snake_case
@@ -169,123 +170,120 @@ export const authAPI = {
 };
 
 export const profileAPI = {
-  getProfile: () => api.get('/profile/'),
+  getProfile: () => api.get("/profile/"),
   updateProfile: (data) => {
     if (data instanceof FormData) {
-      return api.put('/profile/', data, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      return api.put("/profile/", data, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
     }
-    return api.put('/profile/', data);
+    return api.put("/profile/", data);
   },
   changePassword: (oldPassword, newPassword, confirmNewPassword) =>
-    api.post('/profile/password/', {
+    api.post("/profile/password/", {
       old_password: oldPassword, // Backend expects snake_case
       new_password: newPassword, // Backend expects snake_case
       confirm_new_password: confirmNewPassword, // Backend expects snake_case
     }),
 };
 
-// Create CRUD endpoints using factory function
-const baseUsersAPI = createCRUDEndpoints('user');
+/**
+ * Use createCRUDEndpoints result directly + add only resource-specific extras.
+ * Never re-spread the already-spread keys — it creates a maintenance trap.
+ *
+ * Export pattern:
+ *   export const fooAPI = {
+ *     ...createCRUDEndpoints("foo"),
+ *     specialAction: (id) => api.post(`/foos/${id}/action/`),
+ *   };
+ */
+
 export const usersAPI = {
-  ...baseUsersAPI,
-  // Rename methods to match existing API naming convention
-  getUsers: baseUsersAPI.getUsers,
-  getUser: baseUsersAPI.getUser,
-  createUser: baseUsersAPI.createUser,
-  updateUser: baseUsersAPI.updateUser,
-  deleteUser: baseUsersAPI.deleteUser,
-  // Additional methods specific to users
+  ...createCRUDEndpoints("user"),
   archiveUser: (id) => api.patch(`/users/${id}/archive/`),
   restoreUser: (id) => api.patch(`/users/${id}/restore/`),
 };
 
-const baseBinsAPI = createCRUDEndpoints('bin');
 export const binsAPI = {
-  getBins: baseBinsAPI.getBins,
-  getBin: baseBinsAPI.getBin,
-  createBin: baseBinsAPI.createBin,
-  updateBin: baseBinsAPI.updateBin,
-  deleteBin: baseBinsAPI.deleteBin,
+  ...createCRUDEndpoints("bin"),
 };
 
-const baseVehiclesAPI = createCRUDEndpoints('vehicle');
 export const vehiclesAPI = {
-  getVehicles: baseVehiclesAPI.getVehicles,
-  getVehicle: baseVehiclesAPI.getVehicle,
-  createVehicle: baseVehiclesAPI.createVehicle,
-  updateVehicle: baseVehiclesAPI.updateVehicle,
-  deleteVehicle: baseVehiclesAPI.deleteVehicle,
+  ...createCRUDEndpoints("vehicle"),
 };
 
-const baseMunicipalitiesAPI = createCRUDEndpoints('municipality');
 export const municipalitiesAPI = {
-  getMunicipalities: baseMunicipalitiesAPI.getMunicipalities,
-  getMunicipality: baseMunicipalitiesAPI.getMunicipality,
-  createMunicipality: baseMunicipalitiesAPI.createMunicipality,
-  updateMunicipality: baseMunicipalitiesAPI.updateMunicipality,
-  deleteMunicipality: baseMunicipalitiesAPI.deleteMunicipality,
+  ...createCRUDEndpoints("municipality"),
 };
 
-const baseLandfillsAPI = createCRUDEndpoints('landfill');
 export const landfillsAPI = {
-  getLandfills: baseLandfillsAPI.getLandfills,
-  getLandfill: baseLandfillsAPI.getLandfill,
-  createLandfill: baseLandfillsAPI.createLandfill,
-  updateLandfill: baseLandfillsAPI.updateLandfill,
-  deleteLandfill: baseLandfillsAPI.deleteLandfill,
+  ...createCRUDEndpoints("landfill"),
 };
 
-export const mapAPI = {
-  getBins: (params) => api.get('/bins/', { params }),
-  getVehicles: (params) => api.get('/vehicles/', { params }),
-  getLandfills: (params) => api.get('/landfills/', { params }),
-  getMunicipalities: (params) =>
-    api.get('/municipalities/', { params }),
-};
+/**
+ * mapAPI is intentionally removed — it duplicated getBins / getVehicles /
+ * getLandfills / getMunicipalities already present on the domain APIs above.
+ * Import from the specific domain API instead:
+ *   import { binsAPI } from "../services/api";
+ *   binsAPI.getBins(params);
+ */
 
 export const activityLogAPI = {
-  getActivityLog: () => api.get('/admin/activity-log/'),
+  getActivityLog: () => api.get("/admin/activity-log/"),
 };
 
 export const adminStatsAPI = {
-  getStats: () => api.get('/admin/stats/'),
+  getStats: () => api.get("/admin/stats/"),
 };
 
 export const plannerAPI = {
-  getMunicipalities: (params) =>
-    api.get('/municipalities/', { params }),
-  getLandfills: (params) =>
-    api.get('/landfills/', { params }),
-  getVehicles: (params) =>
-    api.get('/vehicles/', { params }),
-  getAvailableBins: (params) =>
-    api.get('/bins/available/', { params }),
-  getScenarios: (params) =>
-    api.get('/scenarios/', { params }),
-  getScenario: (id) =>
-    api.get(`/scenarios/${id}/`),
-  createScenario: (data) =>
-    api.post('/scenarios/', data),
-  updateScenario: (id, data) =>
-    api.patch(`/scenarios/${id}/`, data),
-  deleteScenario: (id) =>
-    api.delete(`/scenarios/${id}/`),
-  solveScenario: (id) =>
-    api.post(`/scenarios/${id}/solve/`),
-  getSolutions: (params) =>
-    api.get('/solutions/', { params }),
-  getSolution: (id) =>
-    api.get(`/solutions/${id}/`),
-  getScenarioTemplates: (params) =>
-    api.get('/scenario-templates/', { params }),
-  createScenarioTemplate: (data) =>
-    api.post('/scenario-templates/', data),
+  getMunicipalities: (params) => api.get("/municipalities/", { params }),
+  getLandfills: (params) => api.get("/landfills/", { params }),
+  getVehicles: (params) => api.get("/vehicles/", { params }),
+  getAvailableBins: (params) => api.get("/bins/available/", { params }),
+  getScenarios: (params) => api.get("/scenarios/", { params }),
+  getScenario: (id) => api.get(`/scenarios/${id}/`),
+  createScenario: (data) => api.post("/scenarios/", data),
+  updateScenario: (id, data) => api.patch(`/scenarios/${id}/`, data),
+  deleteScenario: (id) => api.delete(`/scenarios/${id}/`),
+  solveScenario: (id) => api.post(`/scenarios/${id}/solve/`),
+  getSolutions: (params) => api.get("/solutions/", { params }),
+  getSolution: (id) => api.get(`/solutions/${id}/`),
+  getScenarioTemplates: (params) => api.get("/scenario-templates/", { params }),
+  createScenarioTemplate: (data) => api.post("/scenario-templates/", data),
   updateScenarioTemplate: (id, data) =>
     api.patch(`/scenario-templates/${id}/`, data),
-  deleteScenarioTemplate: (id) =>
-    api.delete(`/scenario-templates/${id}/`),
+  deleteScenarioTemplate: (id) => api.delete(`/scenario-templates/${id}/`),
+};
+
+export const reportsAPI = {
+  getReports: (params) => api.get("/reports/planner/", { params }),
+  getReport: (id) => api.get(`/reports/planner/${id}/`),
+  createPlan: (id) => api.post(`/reports/planner/${id}/plan/`),
+  requestBin: (id, data) =>
+    api.post(`/reports/planner/${id}/request-bin/`, data),
+  submitCitizenReport: (data) =>
+    api.post("/reports/submit/submit/", data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+  deleteReport: (id) => api.delete(`/reports/planner/${id}/`),
+};
+
+export const binRequestsAPI = {
+  getRequests: (params) => api.get("/reports/bin-requests/", { params }),
+  getRequest: (id) => api.get(`/reports/bin-requests/${id}/`),
+  approveRequest: (id, data) =>
+    api.post(`/reports/bin-requests/${id}/approve/`, data),
+  rejectRequest: (id, data) =>
+    api.post(`/reports/bin-requests/${id}/reject/`, data),
+  deleteRequest: (id) => api.delete(`/reports/bin-requests/${id}/`),
+};
+
+export const notificationsAPI = {
+  getNotifications: (params) => api.get("/notifications/", { params }),
+  markAsRead: (id) => api.post(`/notifications/${id}/read/`),
+  markAllAsRead: () => api.post("/notifications/read-all/"),
+  clearAll: () => api.delete("/notifications/clear-all/"),
 };
 
 export default api;
