@@ -18,6 +18,7 @@ const Municipality = () => {
   const [editingMunicipality, setEditingMunicipality] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
+    address: "",
     hq_latitude: "",
     hq_longitude: "",
     planner_id: "",
@@ -83,6 +84,7 @@ const Municipality = () => {
       setEditingMunicipality(municipality);
       setFormData({
         name: municipality.name || "",
+        address: municipality.address || "",
         hq_latitude: municipality.hq_latitude || "",
         hq_longitude: municipality.hq_longitude || "",
         planner_id: municipality.planner?.id || "",
@@ -91,6 +93,7 @@ const Municipality = () => {
       setEditingMunicipality(null);
       setFormData({
         name: "",
+        address: "",
         hq_latitude: "",
         hq_longitude: "",
         planner_id: "",
@@ -105,6 +108,7 @@ const Municipality = () => {
     setEditingMunicipality(null);
     setFormData({
       name: "",
+      address: "",
       hq_latitude: "",
       hq_longitude: "",
       planner_id: "",
@@ -155,6 +159,7 @@ const Municipality = () => {
     try {
       const submitData = {
         name: formData.name,
+        address: formData.address,
       };
 
       if (formData.hq_latitude) {
@@ -209,8 +214,15 @@ const Municipality = () => {
 
   const columns = [
     { key: "name", label: "الاسم" },
-    { key: "hq_latitude", label: "خط العرض" },
-    { key: "hq_longitude", label: "خط الطول" },
+    { 
+      key: "address", 
+      label: "العنوان", 
+      render: (_, row) => (
+        <div className="max-w-[200px] truncate" title={row.address || ""}>
+          {row.address || "—"}
+        </div>
+      )
+    },
   ];
 
   if (currentUser?.is_superuser) {

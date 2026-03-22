@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { binRequestsAPI } from "../services/api";
+import { fetchAddressFromCoordinates } from "../utils/geocoding";
 import { useToast } from "../components/ToastContainer";
 import { useSearchParams } from "react-router-dom";
 import StatusBadge from "../components/StatusBadge";
@@ -76,6 +77,15 @@ const AdminBinRequests = () => {
           payload.capacity = parseInt(newBinCapacity);
           payload.name =
             newBinName || `Bin for Report ${selectedRequest.report}`;
+            
+          const lat = selectedRequest.report_details?.latitude;
+          const lng = selectedRequest.report_details?.longitude;
+          if (lat && lng) {
+            const address = await fetchAddressFromCoordinates(lat, lng);
+            if (address) {
+              payload.address = address;
+            }
+          }
         } else if (selectedRequest.request_type === "resize_bin") {
           payload.capacity = parseInt(newBinCapacity);
         }

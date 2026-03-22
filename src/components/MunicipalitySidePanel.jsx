@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import FormInput from './FormInput';
 import LocationPickerModal from './LocationPickerModal';
+import { fetchAddressFromCoordinates } from '../utils/geocoding';
 
 const MunicipalitySidePanel = ({
   isOpen,
@@ -16,10 +17,14 @@ const MunicipalitySidePanel = ({
   const panelRef = useRef(null);
   const [showMapPicker, setShowMapPicker] = useState(false);
 
-  const handleLocationSelect = (lat, lng) => {
+  const handleLocationSelect = async (lat, lng) => {
     handleChange({ target: { name: 'hq_latitude', value: lat } });
     handleChange({ target: { name: 'hq_longitude', value: lng } });
     setShowMapPicker(false);
+
+    handleChange({ target: { name: 'address', value: 'جاري جلب العنوان...' } });
+    const shortAddress = await fetchAddressFromCoordinates(lat, lng);
+    handleChange({ target: { name: 'address', value: shortAddress } });
   };
 
   // Close when clicking outside the panel
@@ -67,6 +72,15 @@ const MunicipalitySidePanel = ({
               onChange={handleChange}
               error={errors.name}
               required
+            />
+
+            <FormInput
+              label="العنوان"
+              type="text"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              error={errors.address}
             />
 
             <div className="mb-4">

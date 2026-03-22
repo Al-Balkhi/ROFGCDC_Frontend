@@ -19,11 +19,13 @@ const Bins = () => {
   const [editingBin, setEditingBin] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
+    address: "",
     latitude: "",
     longitude: "",
-    capacity: "",
     is_active: true,
     municipality_id: "",
+    pickup_window_start: "",
+    pickup_window_end: "",
   });
   const [errors, setErrors] = useState({});
   const [confirmState, setConfirmState] = useState({ open: false });
@@ -68,21 +70,27 @@ const Bins = () => {
       setEditingBin(bin);
       setFormData({
         name: bin.name || "",
+        address: bin.address || "",
         latitude: bin.latitude || "",
         longitude: bin.longitude || "",
         capacity: bin.capacity || "",
         is_active: bin.is_active !== undefined ? bin.is_active : true,
         municipality_id: bin.municipality?.id || "",
+        pickup_window_start: bin.pickup_window_start || "",
+        pickup_window_end: bin.pickup_window_end || "",
       });
     } else {
       setEditingBin(null);
       setFormData({
         name: "",
+        address: "",
         latitude: "",
         longitude: "",
         capacity: "",
         is_active: true,
         municipality_id: "",
+        pickup_window_start: "",
+        pickup_window_end: "",
       });
     }
     setErrors({});
@@ -94,11 +102,14 @@ const Bins = () => {
     setEditingBin(null);
     setFormData({
       name: "",
+      address: "",
       latitude: "",
       longitude: "",
       capacity: "",
       is_active: true,
       municipality_id: "",
+      pickup_window_start: "",
+      pickup_window_end: "",
     });
     setErrors({});
   };
@@ -147,6 +158,12 @@ const Bins = () => {
     if (!formData.municipality_id) {
       newErrors.municipality = "البلدية مطلوبة";
     }
+    if (
+      (formData.pickup_window_start && !formData.pickup_window_end) ||
+      (!formData.pickup_window_start && formData.pickup_window_end)
+    ) {
+      newErrors.pickup_window = "يجب تحديد وقت البداية والنهاية معاً";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -159,6 +176,7 @@ const Bins = () => {
     try {
       const submitData = {
         name: formData.name,
+        address: formData.address,
         latitude: parseFloat(formData.latitude),
         longitude: parseFloat(formData.longitude),
         capacity: parseInt(formData.capacity),
@@ -166,6 +184,8 @@ const Bins = () => {
         municipality_id: formData.municipality_id
           ? parseInt(formData.municipality_id, 10)
           : null,
+        pickup_window_start: formData.pickup_window_start || null,
+        pickup_window_end: formData.pickup_window_end || null,
       };
 
       if (editingBin) {
@@ -206,9 +226,32 @@ const Bins = () => {
 
   const columns = [
     { key: "name", label: "الاسم" },
-    { key: "latitude", label: "خط العرض" },
-    { key: "longitude", label: "خط الطول" },
+    { 
+      key: "address", 
+      label: "العنوان", 
+      render: (_, row) => (
+        <div className="max-w-[200px] truncate" title={row.address || ""}>
+          {row.address || "—"}
+        </div>
+      )
+    },
     { key: "capacity", label: "السعة" },
+    {
+      key: "pickup_window",
+      label: "وقت الاستلام",
+      render: (_, row) => {
+        if (row.pickup_window_start && row.pickup_window_end) {
+          const start = row.pickup_window_start.substring(0, 5);
+          const end = row.pickup_window_end.substring(0, 5);
+          return (
+            <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-mono font-medium">
+              {start} - {end}
+            </span>
+          );
+        }
+        return "—";
+      },
+    },
     {
       key: "municipality",
       label: "البلدية",

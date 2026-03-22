@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import FormInput from './FormInput';
 import LocationPickerModal from './LocationPickerModal';
+import { fetchAddressFromCoordinates } from '../utils/geocoding';
 import { municipalitiesAPI } from '../services/api';
 
 const BinSidePanel = ({
@@ -18,10 +19,14 @@ const BinSidePanel = ({
   const [loadingMunicipalities, setLoadingMunicipalities] = useState(false);
   const [showMapPicker, setShowMapPicker] = useState(false);
 
-  const handleLocationSelect = (lat, lng) => {
+  const handleLocationSelect = async (lat, lng) => {
     handleChange({ target: { name: 'latitude', value: lat } });
     handleChange({ target: { name: 'longitude', value: lng } });
     setShowMapPicker(false);
+
+    handleChange({ target: { name: 'address', value: 'جاري جلب العنوان...' } });
+    const shortAddress = await fetchAddressFromCoordinates(lat, lng);
+    handleChange({ target: { name: 'address', value: shortAddress } });
   };
 
   // Close when clicking outside the panel
@@ -92,13 +97,22 @@ const BinSidePanel = ({
               required
             />
 
+            <FormInput
+              label="العنوان"
+              type="text"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              error={errors.address}
+            />
+
             <div className="mb-4">
               <button
                 type="button"
                 onClick={() => setShowMapPicker(true)}
                 className="w-full bg-indigo-50 text-indigo-700 py-2 rounded-lg border border-indigo-200 hover:bg-indigo-100 flex items-center justify-center gap-2"
               >
-                📍 حدد الموقع على الخريطة
+                حدد الموقع على الخريطة
               </button>
               {formData.latitude && formData.longitude ? (
                 <div className="mt-2 text-sm text-gray-600 text-center">
@@ -131,6 +145,28 @@ const BinSidePanel = ({
                 <p className="text-red-600 text-sm mt-1">{errors.capacity}</p>
               )}
             </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <FormInput
+                label="وقت البداية (اختياري)"
+                type="time"
+                name="pickup_window_start"
+                value={formData.pickup_window_start || ''}
+                onChange={handleChange}
+                error={errors.pickup_window_start}
+              />
+              <FormInput
+                label="وقت النهاية (اختياري)"
+                type="time"
+                name="pickup_window_end"
+                value={formData.pickup_window_end || ''}
+                onChange={handleChange}
+                error={errors.pickup_window_end}
+              />
+            </div>
+            {errors.pickup_window && (
+              <p className="text-red-600 text-sm mt-1 -mt-2 mb-4">{errors.pickup_window}</p>
+            )}
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">

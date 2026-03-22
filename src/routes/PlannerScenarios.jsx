@@ -58,9 +58,10 @@ const PlannerScenarios = () => {
     // start_landfill_id removed
     end_landfill_id: "",
     vehicle_id: "",
-    bin_ids: [],
     is_recurring: false,
     weekdays: [],
+    use_traffic_profile: false,
+    avoid_streets: "",
   });
 
   const [activeTab, setActiveTab] = useState("scenarios"); // 'scenarios' or 'templates'
@@ -245,9 +246,10 @@ const PlannerScenarios = () => {
       collection_date: "",
       end_landfill_id: "",
       vehicle_id: "",
-      bin_ids: [],
       is_recurring: false,
       weekdays: [],
+      use_traffic_profile: false,
+      avoid_streets: "",
     });
     setErrors({});
   }, []);
@@ -265,10 +267,11 @@ const PlannerScenarios = () => {
           municipality_id: item.municipality?.id || "",
           collection_date: item.collection_date || "",
           end_landfill_id: item.end_landfill?.id || "",
-          vehicle_id: item.vehicle?.id || "",
           bin_ids: (item.bins || []).map((b) => b.id),
           is_recurring: isTemplate,
           weekdays: isTemplate ? item.weekdays.split(",") : [],
+          use_traffic_profile: item.use_traffic_profile || false,
+          avoid_streets: item.avoid_streets || "",
         });
       } else {
         setEditingPlan(null);
@@ -292,7 +295,7 @@ const PlannerScenarios = () => {
     setFormData((prev) => {
       let newData = { ...prev };
 
-      if (type === "checkbox" && name === "is_recurring") {
+      if (type === "checkbox" && (name === "is_recurring" || name === "use_traffic_profile")) {
         newData[name] = checked;
       } else {
         newData[name] = value;
@@ -352,6 +355,8 @@ const PlannerScenarios = () => {
         vehicle_id: formData.vehicle_id,
         bin_ids: formData.bin_ids,
         weekdays: formData.weekdays.join(","), // Always present now
+        use_traffic_profile: formData.use_traffic_profile,
+        avoid_streets: formData.avoid_streets,
       };
 
       if (editingPlan) {

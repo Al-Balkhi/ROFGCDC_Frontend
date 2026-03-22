@@ -66,6 +66,31 @@ const PlanSideBar = ({
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormInput
+              label="شوارع يجب تجنبها (اختياري)"
+              type="text"
+              name="avoid_streets"
+              value={formData.avoid_streets}
+              onChange={handleChange}
+              error={errors.avoid_streets}
+              placeholder="مثال: طريق المطار, نفق الأمويين"
+            />
+            
+            <div className="flex flex-col justify-center pt-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="use_traffic_profile"
+                  checked={formData.use_traffic_profile}
+                  onChange={handleChange}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">تفعيل الملف المروري (تجنب الازدحام)</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 البلدية

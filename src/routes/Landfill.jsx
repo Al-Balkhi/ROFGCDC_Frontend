@@ -19,6 +19,7 @@ const Landfill = () => {
   const [editingLandfill, setEditingLandfill] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
+    address: "",
     latitude: "",
     longitude: "",
     municipality_ids: [],
@@ -80,6 +81,7 @@ const Landfill = () => {
       setEditingLandfill(landfill);
       setFormData({
         name: landfill.name || "",
+        address: landfill.address || "",
         latitude: landfill.latitude || "",
         longitude: landfill.longitude || "",
         municipality_ids: landfill.municipalities?.map((m) => m.id) || [],
@@ -88,6 +90,7 @@ const Landfill = () => {
       setEditingLandfill(null);
       setFormData({
         name: "",
+        address: "",
         latitude: "",
         longitude: "",
         municipality_ids: [],
@@ -102,6 +105,7 @@ const Landfill = () => {
     setEditingLandfill(null);
     setFormData({
       name: "",
+      address: "",
       latitude: "",
       longitude: "",
       municipality_ids: [],
@@ -164,6 +168,7 @@ const Landfill = () => {
     try {
       const submitData = {
         name: formData.name,
+        address: formData.address,
         latitude: parseFloat(formData.latitude),
         longitude: parseFloat(formData.longitude),
         municipality_ids: formData.municipality_ids,
@@ -207,8 +212,15 @@ const Landfill = () => {
 
   const columns = [
     { key: "name", label: "الاسم" },
-    { key: "latitude", label: "خط العرض" },
-    { key: "longitude", label: "خط الطول" },
+    { 
+      key: "address", 
+      label: "العنوان", 
+      render: (_, row) => (
+        <div className="max-w-[200px] truncate" title={row.address || ""}>
+          {row.address || "—"}
+        </div>
+      )
+    },
     {
       key: "municipalities",
       label: "البلديات",
