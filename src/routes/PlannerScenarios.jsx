@@ -39,6 +39,7 @@ const PlannerScenarios = () => {
   // ConfirmDialog state
   const [confirmState, setConfirmState] = useState({ open: false });
 
+
   // --- حالات الفلترة والبحث ---
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -204,6 +205,17 @@ const PlannerScenarios = () => {
     }
   }, [fetchScenarios, fetchTemplates, currentPage, activeTab]);
 
+  // Auto-refresh when tab regains focus so status changes from driver appear live
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (!document.hidden && activeTab === "scenarios") {
+        fetchScenarios(currentPage);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [fetchScenarios, currentPage, activeTab]);
+
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
@@ -246,6 +258,7 @@ const PlannerScenarios = () => {
       collection_date: "",
       end_landfill_id: "",
       vehicle_id: "",
+      bin_ids: [],
       is_recurring: false,
       weekdays: [],
       use_traffic_profile: false,
@@ -437,16 +450,23 @@ const PlannerScenarios = () => {
         render: (_, row) => row.bins?.length || 0,
       },
       {
+        key: "driver",
+        label: "السائق",
+        render: (_, row) => row.assigned_driver?.name || "غير محدد",
+      },
+      {
         key: "status",
         label: "الحالة",
         render: (_, row) => {
           const s = SCENARIO_STATUS[row.status] ?? SCENARIO_STATUS._unknown;
           return (
-            <span
-              className={`px-2 py-1 rounded text-xs font-semibold ${s.classes}`}
-            >
-              {s.label}
-            </span>
+            <div className="flex flex-col gap-2">
+              <span
+                className={`px-2 py-1 rounded text-xs font-semibold inline-block text-center ${s.classes}`}
+              >
+                {s.label}
+              </span>
+            </div>
           );
         },
       },
@@ -558,8 +578,7 @@ const PlannerScenarios = () => {
           <button
             onClick={() => openSidePanel()}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
-          >
-            <span>+</span> إنشاء خطة دورية
+          > إنشاء خطة دورية
           </button>
         )}
       </div>
@@ -576,7 +595,7 @@ const PlannerScenarios = () => {
             className={`pb-2 px-1 text-sm font-medium transition-colors ${activeTab === "templates" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
             onClick={() => setActiveTab("templates")}
           >
-            الخطط الدورية
+            الخطط المجدولة
           </button>
         </div>
       </div>
@@ -588,16 +607,13 @@ const PlannerScenarios = () => {
             type="text"
             placeholder={
               activeTab === "scenarios"
-                ? "ابحث باسم الخطة..."
-                : "ابحث باسم الخطة..."
+                ? "ابحث بالاسم ..."
+                : "ابحث بالاسم ..."
             }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none pl-10"
           />
-          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-            🔍
-          </span>
         </div>
 
         <div className="relative" ref={filterRef}>
@@ -695,6 +711,7 @@ const PlannerScenarios = () => {
         }}
         onCancel={() => setConfirmState({ open: false })}
       />
+
     </div>
   );
 };

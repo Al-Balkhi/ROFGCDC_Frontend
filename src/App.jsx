@@ -33,6 +33,8 @@ const AdminBinRequests = lazy(() => import("./routes/AdminBinRequests"));
 const NotificationsHistory = lazy(
   () => import("./routes/NotificationsHistory"),
 );
+const DriverReports = lazy(() => import("./routes/DriverReports"));
+const DriverReportDetail = lazy(() => import("./routes/DriverReportDetail"));
 
 function App() {
   useEffect(() => {
@@ -86,6 +88,8 @@ function App() {
                 path="solutions/:solutionId"
                 element={<PlannerSolutions />}
               />
+              <Route path="driver-reports" element={<DriverReports />} />
+              <Route path="driver-reports/:reportId" element={<DriverReportDetail />} />
             </Route>
 
             {/* Protected routes - All authenticated users (shared layout) */}

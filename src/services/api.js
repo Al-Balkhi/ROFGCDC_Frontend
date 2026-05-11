@@ -286,4 +286,16 @@ export const notificationsAPI = {
   clearAll: () => api.delete("/notifications/clear-all/"),
 };
 
+export const driverReportsAPI = {
+  getDrivers: () => api.get("/driver/planner/drivers/"),
+  assignTask: (data) => api.post("/driver/planner/tasks/assign/", data),
+  getReports: (params) => api.get("/driver/planner/reports/", { params }),
+  getReport: (id) => api.get(`/driver/planner/reports/${id}/`),
+  generateAISummary: (data) => api.post("/driver/planner/reports/ai-summary/", data),
+  exportReports: (format, startDate, endDate, reportId) => api.get("/driver/planner/reports/export/", { 
+    params: { date_from: startDate, date_to: endDate, report_ids: reportId },
+    responseType: 'blob' 
+  }),
+};
+
 export default api;

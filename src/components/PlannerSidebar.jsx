@@ -7,6 +7,7 @@ import {
   AlertCircle,
   ChevronRight,
   Bell,
+  FileText,
 } from "lucide-react";
 
 export default function PlannerSidebar() {
@@ -25,6 +26,11 @@ export default function PlannerSidebar() {
       label: "الحلول المثلى",
       icon: <Route />,
       to: "/dashboard/planner/solutions",
+    },
+    {
+      label: "تقارير السائقين",
+      icon: <FileText />,
+      to: "/dashboard/planner/driver-reports",
     },
     { label: "الإشعارات", icon: <Bell />, to: "/notifications" },
   ];

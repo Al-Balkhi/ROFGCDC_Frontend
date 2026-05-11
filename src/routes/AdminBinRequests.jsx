@@ -25,6 +25,7 @@ const AdminBinRequests = () => {
   const [rejectReason, setRejectReason] = useState("");
   const [newBinCapacity, setNewBinCapacity] = useState("1000");
   const [newBinName, setNewBinName] = useState("");
+  const [newBinAddress, setNewBinAddress] = useState("");
 
   const fetchRequests = useCallback(async () => {
     setLoading(true);
@@ -77,14 +78,8 @@ const AdminBinRequests = () => {
           payload.capacity = parseInt(newBinCapacity);
           payload.name =
             newBinName || `Bin for Report ${selectedRequest.report}`;
-            
-          const lat = selectedRequest.report_details?.latitude;
-          const lng = selectedRequest.report_details?.longitude;
-          if (lat && lng) {
-            const address = await fetchAddressFromCoordinates(lat, lng);
-            if (address) {
-              payload.address = address;
-            }
+          if (newBinAddress && newBinAddress !== "جاري جلب العنوان...") {
+            payload.address = newBinAddress;
           }
         } else if (selectedRequest.request_type === "resize_bin") {
           payload.capacity = parseInt(newBinCapacity);
@@ -100,7 +95,7 @@ const AdminBinRequests = () => {
         await binRequestsAPI.rejectRequest(selectedRequest.id, {
           reason: rejectReason,
         });
-        addToast("تم رفض الطلب وتحويله لخطة جمع", "success");
+        addToast("تم رفض الطلب", "success");
       }
 
       setSelectedRequest(null);
@@ -114,10 +109,11 @@ const AdminBinRequests = () => {
     }
   };
 
-  const openActionModal = (req, type) => {
+  const openActionModal = async (req, type) => {
     setSelectedRequest(req);
     setActionType(type);
     setRejectReason("");
+    setNewBinAddress("");
 
     // Proactively fill values from Planner's request
     if (req.requested_capacity) {
@@ -130,6 +126,13 @@ const AdminBinRequests = () => {
 
     if (type === "approve" && req.request_type === "new_bin") {
       setNewBinName(`حاوية جديدة - بلاغ ${req.report}`);
+      const lat = req.report_details?.latitude;
+      const lng = req.report_details?.longitude;
+      if (lat && lng) {
+        setNewBinAddress("جاري جلب العنوان...");
+        const address = await fetchAddressFromCoordinates(lat, lng);
+        setNewBinAddress(address || "");
+      }
     }
   };
 
@@ -313,7 +316,7 @@ const AdminBinRequests = () => {
               >
                 {actionType === "approve"
                   ? "تأكيد الموافقة على الطلب"
-                  : "رفض الطلب وتحويله لخطة جمع"}
+                  : "تأكيد رفض الطلب"}
               </h3>
             </div>
 
@@ -334,17 +337,30 @@ const AdminBinRequests = () => {
               {actionType === "approve" && (
                 <div className="space-y-4">
                   {selectedRequest.request_type === "new_bin" && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        اسم الحاوية الجديدة
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
-                        value={newBinName}
-                        onChange={(e) => setNewBinName(e.target.value)}
-                      />
-                    </div>
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          اسم الحاوية الجديدة
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
+                          value={newBinName}
+                          onChange={(e) => setNewBinName(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          العنوان
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
+                          value={newBinAddress}
+                          onChange={(e) => setNewBinAddress(e.target.value)}
+                        />
+                      </div>
+                    </>
                   )}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -366,7 +382,7 @@ const AdminBinRequests = () => {
               {actionType === "reject" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    سبب الرفض (إلزامي للتعويض)
+                    سبب الرفض (إلزامي)
                   </label>
                   <textarea
                     className="w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
@@ -375,10 +391,6 @@ const AdminBinRequests = () => {
                     onChange={(e) => setRejectReason(e.target.value)}
                     placeholder="مثال: يرجى إرسال خطة جمع فورية بدلاً من وضع حاوية جديدة..."
                   />
-                  <p className="text-xs text-red-500 mt-2">
-                    * الموافقة على الرفض ستقوم آلياً بإنشاء خطة جمع فورية للمخطط
-                    كبديل.
-                  </p>
                 </div>
               )}
 

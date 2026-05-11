@@ -139,3 +139,15 @@ export const WEEKDAY_NAMES = [
   "الخميس",
   "الجمعة",
 ];
+
+// ---------------------------------------------------------------------------
+// Driver Task & Report Status
+// ---------------------------------------------------------------------------
+
+export const DRIVER_TASK_STATUS = {
+  assigned: { label: "مُسندة", classes: "bg-gray-100 text-gray-700" },
+  in_progress: { label: "قيد التنفيذ", classes: "bg-blue-100 text-blue-700" },
+  completed: { label: "مكتملة", classes: "bg-green-100 text-green-700" },
+  cancelled: { label: "ملغاة", classes: "bg-red-100 text-red-700" },
+  _unknown: { label: "غير محدد", classes: "bg-gray-100 text-gray-700" },
+};

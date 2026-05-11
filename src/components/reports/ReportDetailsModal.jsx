@@ -114,12 +114,14 @@ const ReportDetailsModal = ({
               >
                 إنشاء خطة جمع فورية
               </button>
-              <button
-                onClick={() => onAction(report, "resize_bin")}
-                className="flex-1 bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold py-2.5 px-3 rounded-lg text-sm transition-colors border border-orange-200 shadow-sm"
-              >
-                تغيير حجم حاوية
-              </button>
+              {!report.has_rejected_bin_request && (
+                <button
+                  onClick={() => onAction(report, "resize_bin")}
+                  className="flex-1 bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold py-2.5 px-3 rounded-lg text-sm transition-colors border border-orange-200 shadow-sm"
+                >
+                  تغيير حجم حاوية
+                </button>
+              )}
             </>
           ) : report.issue_type === "no_container" ? (
             <button

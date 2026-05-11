@@ -19,8 +19,10 @@ const PlanSideBar = ({
 }) => {
   const panelRef = useRef(null);
 
-  // Close when clicking outside
+  // Close when clicking outside (only when sidebar is open)
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleClickOutside = (event) => {
       if (panelRef.current && !panelRef.current.contains(event.target)) {
         onClose();
@@ -29,7 +31,7 @@ const PlanSideBar = ({
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onClose]);
+  }, [isOpen, onClose]);
 
   return (
     <div
@@ -47,7 +49,7 @@ const PlanSideBar = ({
       >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">
-            {editingPlan ? "تعديل قالب الخطة الدورية" : "إضافة قالب خطة دورية"}
+            {editingPlan ? "تعديل خطة مجدولة" : "إضافة خطة مجدولة"}
           </h2>
           <button onClick={onClose} className="text-gray-600 text-xl">
             ×
@@ -180,13 +182,18 @@ const PlanSideBar = ({
                 onChange={handleChange}
                 className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
                 required
+                disabled={!formData.municipality_id}
               >
-                <option value="">اختر المركبة</option>
-                {vehicles.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name} (السعة: {v.capacity})
-                  </option>
-                ))}
+                <option value="">
+                  {formData.municipality_id ? "اختر المركبة" : "اختر البلدية أولاً"}
+                </option>
+                {vehicles
+                  .filter((v) => Number(v.municipality?.id) === Number(formData.municipality_id))
+                  .map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} (السعة: {v.capacity})
+                    </option>
+                  ))}
               </select>
               {errors.vehicle && (
                 <p className="text-red-600 text-sm mt-1">{errors.vehicle}</p>
@@ -211,8 +218,7 @@ const PlanSideBar = ({
                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
                   <span>
-                    {bin.name} ({bin.latitude}, {bin.longitude}) - السعة:{" "}
-                    {bin.capacity}
+                    {bin.name} - السعة: {bin.capacity}
                   </span>
                 </label>
               ))}

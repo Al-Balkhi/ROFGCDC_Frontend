@@ -1,6 +1,7 @@
 export const ROLES = {
   ADMIN: 'admin',
   PLANNER: 'planner',
+  DRIVER: 'driver',
 };
 
 export const DASHBOARD_ROUTES = {

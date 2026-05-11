@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import useAuthStore from "../store/authStore";
-import { usersAPI } from "../services/api";
+import { usersAPI, municipalitiesAPI } from "../services/api";
 import Table from "../components/Table";
 import { useToast } from "../components/ToastContainer";
 import UserFiltersDropdown from "../components/UserFiltersDropdown";
@@ -11,6 +11,7 @@ const Users = () => {
   const { addToast } = useToast();
 
   const [users, setUsers] = useState([]);
+  const [municipalities, setMunicipalities] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
@@ -24,12 +25,29 @@ const Users = () => {
   const [selectedStates, setSelectedStates] = useState([]);
   const [selectedArchived, setSelectedArchived] = useState([]);
 
+  const DAYS = [
+    { key: "saturday", label: "السبت" },
+    { key: "sunday", label: "الأحد" },
+    { key: "monday", label: "الإثنين" },
+    { key: "tuesday", label: "الثلاثاء" },
+    { key: "wednesday", label: "الأربعاء" },
+    { key: "thursday", label: "الخميس" },
+    { key: "friday", label: "الجمعة" },
+  ];
+
+  const defaultWorkSchedule = DAYS.reduce((acc, day) => ({
+    ...acc,
+    [day.key]: { enabled: true, start_time: "08:00", end_time: "17:00" },
+  }), {});
+
   const [formData, setFormData] = useState({
     email: "",
     username: "",
     role: "driver",
+    municipality_id: "",
     phone: "",
     image_profile: null,
+    work_schedule: defaultWorkSchedule,
   });
 
   const [errors, setErrors] = useState({});
@@ -84,6 +102,13 @@ const Users = () => {
 
   useEffect(() => {
     fetchUsers();
+    
+    // Fetch municipalities
+    municipalitiesAPI.getMunicipalities()
+      .then(res => {
+        setMunicipalities(Array.isArray(res.data) ? res.data : res.data?.results || []);
+      })
+      .catch(() => addToast("فشل تحميل البلديات", "error"));
   }, [fetchUsers]);
 
   const openSidePanel = (user = null) => {
@@ -93,8 +118,10 @@ const Users = () => {
         email: user.email || "",
         username: user.username || "",
         role: user.role || "driver",
+        municipality_id: user.municipality || "",
         phone: user.phone || "",
         image_profile: user.image_profile || null,
+        work_schedule: user.work_schedule || defaultWorkSchedule,
       });
     } else {
       setEditingUser(null);
@@ -102,8 +129,10 @@ const Users = () => {
         email: "",
         username: "",
         role: "driver",
+        municipality_id: "",
         phone: "",
         image_profile: null,
+        work_schedule: defaultWorkSchedule,
       });
     }
 
@@ -118,8 +147,10 @@ const Users = () => {
       email: "",
       username: "",
       role: "driver",
+      municipality_id: "",
       phone: "",
       image_profile: null,
+      work_schedule: defaultWorkSchedule,
     });
     setErrors({});
   };
@@ -130,6 +161,19 @@ const Users = () => {
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
+  };
+
+  const handleWorkScheduleChange = (day, field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      work_schedule: {
+        ...prev.work_schedule,
+        [day]: {
+          ...prev.work_schedule[day],
+          [field]: value,
+        },
+      },
+    }));
   };
 
   const handleImageChange = (file) => {
@@ -157,10 +201,17 @@ const Users = () => {
       if (!editingUser) submitData.append("email", formData.email);
       submitData.append("username", formData.username);
       submitData.append("role", formData.role);
+      if (formData.role === "driver" && formData.municipality_id) {
+        submitData.append("municipality", formData.municipality_id);
+      }
       submitData.append("phone", formData.phone);
 
       if (formData.image_profile instanceof File) {
         submitData.append("image_profile", formData.image_profile);
+      }
+
+      if (formData.role === "driver") {
+        submitData.append("work_schedule", JSON.stringify(formData.work_schedule));
       }
 
       if (editingUser) {
@@ -343,11 +394,14 @@ const Users = () => {
         onClose={closeSidePanel}
         onSubmit={handleSubmit}
         loading={loading}
+        municipalities={municipalities}
         editingUser={editingUser}
         formData={formData}
         errors={errors}
         handleChange={handleChange}
         handleImageChange={handleImageChange}
+        handleWorkScheduleChange={handleWorkScheduleChange}
+        days={DAYS}
       />
 
       <ConfirmDialog
